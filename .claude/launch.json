@@ -6,6 +6,12 @@
       "runtimeExecutable": "flutter",
       "runtimeArgs": ["run", "-d", "chrome", "--web-port", "8765"],
       "port": 8765
+    },
+    {
+      "name": "mart_flutter_web_static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-l", "8766", "-s", "build/web"],
+      "port": 8766
     }
   ]
 }

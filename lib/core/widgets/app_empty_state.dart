@@ -123,7 +123,7 @@ enum AppEmptyTone { neutral, error }
 //   title: 'Your cart is empty',
 //   message: 'Browse the catalogue to add your first item.',
 //   actionLabel: 'Start shopping',
-//   onAction: () => context.go(Routes.home),
+//   onAction: () => context.go(Routes.dashboard),
 // )
 //
 // AppEmptyState.error(onAction: _reload)

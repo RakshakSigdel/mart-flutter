@@ -1,7 +1,7 @@
 /// The Rakshak Mart design system, in one import.
 ///
 /// ```dart
-/// import 'package:mart_flutter/core/core.dart';
+/// import 'package:sts_retail/core/core.dart';
 /// ```
 library;
 
@@ -32,6 +32,7 @@ export 'widgets/app_button.dart';
 export 'widgets/app_card.dart';
 export 'widgets/app_dropdown_field.dart';
 export 'widgets/app_empty_state.dart';
+export 'widgets/app_form_error.dart';
 export 'widgets/app_loader.dart';
 export 'widgets/app_modal.dart';
 export 'widgets/app_panel.dart';
@@ -45,7 +46,7 @@ export 'widgets/app_text_field.dart';
 //
 // In any screen or widget, import everything with a single line:
 //
-// import 'package:mart_flutter/core/core.dart';
+// import 'package:sts_retail/core/core.dart';
 //
 // Then use freely:
 //

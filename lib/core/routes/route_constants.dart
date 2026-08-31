@@ -12,5 +12,11 @@ class Routes {
   static const String notFound = '/404';
 
   //-----------Auth---------------
-  //static const String staffLogin = '/staff-login';
+  static const String login = '/login';
+
+  //-----------User---------------
+  static const String dashboard = '/dashboard';
+
+  //-----------Superadmin---------------
+  static const String adminManagement = '/admin/management';
 }
