@@ -14,6 +14,13 @@ class Routes {
   //-----------Auth---------------
   static const String login = '/login';
 
+  //-----------Shared (any signed-in role)---------------
+
+  /// The signed-in user's own account and change-password gateway —
+  /// reachable from an `AppBar` avatar regardless of role, so it lives
+  /// outside both the admin shell and the superadmin area.
+  static const String profile = '/profile';
+
   //-----------User (Admin shell)---------------
   static const String dashboard = '/dashboard';
   static const String staff = '/staff';

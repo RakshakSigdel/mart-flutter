@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/core.dart';
 import '../../../feature_shared/auth/controller/auth_controller.dart';
+import '../../../feature_shared/profile/widgets/profile_avatar_button.dart';
 import '../models/admin_nav_item.dart';
 import '../widgets/admin_sidebar.dart';
 
@@ -66,6 +67,7 @@ class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
                 onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               ),
         title: Text(currentItem.label),
+        actions: const [ProfileAvatarButton()],
       ),
       drawer: isWide
           ? null

@@ -6,6 +6,7 @@ import '../../../../core/core.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_superadmin/admin_model.dart';
 import '../../../feature_shared/auth/controller/auth_controller.dart';
+import '../../../feature_shared/profile/widgets/profile_avatar_button.dart';
 import '../controllers/admin_management_controller.dart';
 import '../widgets/admin_confirm_dialog.dart';
 import '../widgets/admin_list_card.dart';
@@ -162,6 +163,7 @@ class _AdminManagementScreenState
         backgroundColor: AppColors.background,
         title: const Text('Admin Management'),
         actions: [
+          const ProfileAvatarButton(),
           IconButton(
             onPressed: _logout,
             icon: const Icon(Icons.logout),

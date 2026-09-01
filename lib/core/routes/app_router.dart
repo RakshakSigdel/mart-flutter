@@ -10,6 +10,7 @@ import '../../data/models/models_user/inventory_units_model.dart';
 import '../../data/models/models_user/staff_model.dart';
 import '../../presentation/feature_shared/auth/controller/auth_controller.dart';
 import '../../presentation/feature_shared/auth/screens/login_screen.dart';
+import '../../presentation/feature_shared/profile/screens/profile_screen.dart';
 import '../../presentation/feature_superadmin/admin_management/screens/admin_form_screen.dart';
 import '../../presentation/feature_superadmin/admin_management/screens/admin_management_screen.dart';
 import '../../presentation/feature_user/dashboard/screen/dashboard_screen.dart';
@@ -143,6 +144,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'notFound',
         pageBuilder: (context, state) =>
             AppPageRoute.fadeThrough(state, const NotFoundScreen()),
+      ),
+      // The signed-in user's own profile — reachable from either role's
+      // AppBar, so it's a full page outside both the shell and the
+      // superadmin area rather than a branch of one of them.
+      GoRoute(
+        path: Routes.profile,
+        name: 'profile',
+        pageBuilder: (context, state) =>
+            AppPageRoute.sharedAxisHorizontal(state, const ProfileScreen()),
       ),
       // Mart-admin area: a persistent sidebar (see [AdminShellScreen]) around
       // an IndexedStack of branches, so each keeps its own navigation stack
