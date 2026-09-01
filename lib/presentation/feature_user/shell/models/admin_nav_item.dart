@@ -29,9 +29,7 @@ const Map<String, IconData> adminNavGroupIcons = {
 };
 
 /// The admin area's nav destinations, in branch order — index N here must
-/// match the Nth [StatefulShellBranch] in the router. More are added here
-/// as the corresponding feature screens land (inventory_products will join
-/// the "Inventory" group the same way "Units" and "Categories" do).
+/// match the Nth [StatefulShellBranch] in the router.
 const List<AdminNavItem> adminNavItems = [
   AdminNavItem(
     label: 'Dashboard',
@@ -48,6 +46,12 @@ const List<AdminNavItem> adminNavItems = [
     label: 'Categories',
     icon: Icons.category_outlined,
     activeIcon: Icons.category_rounded,
+    group: 'Inventory',
+  ),
+  AdminNavItem(
+    label: 'Products',
+    icon: Icons.inventory_outlined,
+    activeIcon: Icons.inventory_rounded,
     group: 'Inventory',
   ),
   AdminNavItem(

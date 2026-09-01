@@ -16,6 +16,9 @@ import '../../presentation/feature_user/dashboard/screen/dashboard_screen.dart';
 import '../../presentation/feature_user/inventory_categories/screens/inventory_categories_screen.dart';
 import '../../presentation/feature_user/inventory_categories/screens/inventory_category_detail_screen.dart';
 import '../../presentation/feature_user/inventory_categories/screens/inventory_category_form_screen.dart';
+import '../../presentation/feature_user/inventory_products/screens/inventory_product_detail_screen.dart';
+import '../../presentation/feature_user/inventory_products/screens/inventory_product_form_screen.dart';
+import '../../presentation/feature_user/inventory_products/screens/inventory_products_screen.dart';
 import '../../presentation/feature_user/inventory_units/screens/inventory_unit_form_screen.dart';
 import '../../presentation/feature_user/inventory_units/screens/inventory_units_screen.dart';
 import '../../presentation/feature_user/shell/screens/admin_shell_screen.dart';
@@ -185,6 +188,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: Routes.inventoryProducts,
+                name: 'inventoryProducts',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const InventoryProductsScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: Routes.staff,
                 name: 'staff',
                 pageBuilder: (context, state) =>
@@ -261,6 +274,38 @@ final routerProvider = Provider<GoRouter>((ref) {
           state,
           InventoryCategoryDetailScreen(
             categoryId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          ),
+        ),
+      ),
+      // Add/edit product — full pages for the same reason as the staff
+      // form routes above. Unlike staff/mart/category/unit, this never
+      // takes an `extra` prefill — see `InventoryProductFormScreen`'s doc
+      // comment for why.
+      GoRoute(
+        path: Routes.inventoryProductNew,
+        name: 'inventoryProductNew',
+        pageBuilder: (context, state) =>
+            AppPageRoute.sharedAxisHorizontal(state, const InventoryProductFormScreen()),
+      ),
+      GoRoute(
+        path: Routes.inventoryProductEditPath,
+        name: 'inventoryProductEdit',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          InventoryProductFormScreen(
+            productId: int.tryParse(state.pathParameters['id'] ?? ''),
+          ),
+        ),
+      ),
+      // Product detail — trading configuration (purchase/selling units,
+      // VAT history), the one thing the plain list doesn't carry.
+      GoRoute(
+        path: Routes.inventoryProductDetailPath,
+        name: 'inventoryProductDetail',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          InventoryProductDetailScreen(
+            productId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
           ),
         ),
       ),

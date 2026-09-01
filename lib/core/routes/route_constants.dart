@@ -66,6 +66,26 @@ class Routes {
 
   static String inventoryCategoryDetail(int id) => '$inventoryCategories/$id';
 
+  static const String inventoryProducts = '$inventory/products';
+
+  /// New/edit product forms, as their own page — same reasoning as
+  /// [staffNew].
+  static const String inventoryProductNew = '$inventoryProducts/new';
+
+  /// Path template for registering the edit-product route with
+  /// [GoRouter]. Screens must not build this string by hand — use
+  /// [inventoryProductEdit].
+  static const String inventoryProductEditPath = '$inventoryProducts/:id/edit';
+
+  static String inventoryProductEdit(int id) => '$inventoryProducts/$id/edit';
+
+  /// Path template for registering the product-detail route (trading
+  /// configuration, VAT history) with [GoRouter]. Screens must not build
+  /// this string by hand — use [inventoryProductDetail].
+  static const String inventoryProductDetailPath = '$inventoryProducts/:id';
+
+  static String inventoryProductDetail(int id) => '$inventoryProducts/$id';
+
   //-----------Superadmin---------------
   static const String adminManagement = '/admin/management';
 
