@@ -37,6 +37,12 @@ class AppDropdownField<T> extends StatelessWidget {
       onChanged: enabled ? onChanged : null,
       validator: validator,
       style: AppTypography.body,
+      // Without this, the closed field's intrinsic width follows the widest
+      // item's natural width (Flutter measures every item off-stage for the
+      // open/close animation) rather than the space actually available —
+      // a long item label then overflows a narrow fixed-width field instead
+      // of eliding.
+      isExpanded: true,
       icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 22),
       iconEnabledColor: AppColors.iconActive,
       iconDisabledColor: AppColors.iconInactive,

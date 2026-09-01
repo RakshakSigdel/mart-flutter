@@ -7,16 +7,15 @@ import '../../../../data/models/models_superadmin/admin_model.dart';
 import '../controllers/admin_management_controller.dart';
 import 'admin_date_format.dart';
 
-/// Create/edit form for one mart. Returns `true` via [Navigator.pop] when
-/// the save succeeded, so the caller can show a snackbar with a context
-/// that's guaranteed to still be mounted (the dialog's own context is on
-/// its way out the moment it pops).
+/// Create/edit form for one mart. Calls [Navigator.pop] with `true` when the
+/// save succeeds, so the caller (`AdminFormScreen`) can show a snackbar with
+/// a context that's guaranteed to still be mounted.
 ///
-/// Opened through [showAdminFormDialog] rather than directly, so callers
-/// don't have to know it needs a wide-screen dialog vs. a phone bottom
-/// sheet — see that function.
-class AdminFormDialog extends ConsumerStatefulWidget {
-  const AdminFormDialog({super.key, this.admin});
+/// Plain content — no page chrome of its own. Hosted by `AdminFormScreen`
+/// rather than a dialog: the field count made a dialog/bottom-sheet feel
+/// cramped, so this is a full page instead.
+class AdminForm extends ConsumerStatefulWidget {
+  const AdminForm({super.key, this.admin});
 
   /// Null for "create a new mart"; the mart being edited otherwise.
   final AdminModel? admin;
@@ -24,10 +23,10 @@ class AdminFormDialog extends ConsumerStatefulWidget {
   bool get isEditing => admin != null;
 
   @override
-  ConsumerState<AdminFormDialog> createState() => _AdminFormDialogState();
+  ConsumerState<AdminForm> createState() => _AdminFormState();
 }
 
-class _AdminFormDialogState extends ConsumerState<AdminFormDialog> {
+class _AdminFormState extends ConsumerState<AdminForm> {
   final _formKey = GlobalKey<FormState>();
 
   late final _username = TextEditingController(text: widget.admin?.username);
@@ -162,7 +161,6 @@ class _AdminFormDialogState extends ConsumerState<AdminFormDialog> {
     return Form(
       key: _formKey,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SectionLabel('Company'),
@@ -257,6 +255,7 @@ class _AdminFormDialogState extends ConsumerState<AdminFormDialog> {
             isLoading: _submitting,
             onPressed: _submitting ? null : _submit,
           ),
+          const SizedBox(height: AppSpacing.xl),
         ],
       ),
     );
@@ -305,17 +304,4 @@ class _DateField extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Opens [AdminFormDialog] as a centered dialog on wide screens, or a
-/// bottom sheet on phone — same content, the presentation matches the
-/// device. Returns `true` if the mart was created/updated.
-Future<bool?> showAdminFormDialog(BuildContext context, {AdminModel? admin}) {
-  final isWide = MediaQuery.sizeOf(context).width >= AppBreakpoints.tablet;
-  final title = admin == null ? 'New mart' : 'Edit ${admin.companyName}';
-  final content = AdminFormDialog(admin: admin);
-
-  return isWide
-      ? showAppDialog<bool>(context: context, title: title, content: content)
-      : showAppModal<bool>(context: context, title: title, content: content);
 }

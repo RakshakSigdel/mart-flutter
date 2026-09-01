@@ -8,7 +8,6 @@ import '../../../../data/models/models_superadmin/admin_model.dart';
 import '../../../feature_shared/auth/controller/auth_controller.dart';
 import '../controllers/admin_management_controller.dart';
 import '../widgets/admin_confirm_dialog.dart';
-import '../widgets/admin_form_dialog.dart';
 import '../widgets/admin_list_card.dart';
 import '../widgets/admin_pagination_bar.dart';
 import '../widgets/admin_reset_password_dialog.dart';
@@ -47,7 +46,7 @@ class _AdminManagementScreenState
   }
 
   Future<void> _createMart() async {
-    final result = await showAdminFormDialog(context);
+    final result = await context.push<bool>(Routes.adminNew);
     if (result == true && mounted) {
       AppSnackBar.success(context, 'Mart created.');
     }
@@ -81,7 +80,10 @@ class _AdminManagementScreenState
   Future<void> _handleRowAction(AdminModel admin, AdminRowAction action) async {
     switch (action) {
       case AdminRowAction.edit:
-        final result = await showAdminFormDialog(context, admin: admin);
+        final result = await context.push<bool>(
+          Routes.adminEdit(admin.id),
+          extra: admin,
+        );
         if (result == true && mounted) {
           AppSnackBar.success(context, 'Mart updated.');
         }

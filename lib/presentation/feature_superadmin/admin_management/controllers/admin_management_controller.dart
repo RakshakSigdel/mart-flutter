@@ -253,7 +253,11 @@ class AdminManagementController extends Notifier<AdminManagementState> {
   }
 }
 
+/// `autoDispose`: this holds the mart list/search/filters for whoever is
+/// currently signed in as superadmin. Disposing when the last watcher (the
+/// admin-management screen) unmounts — which happens on logout — keeps a
+/// stale list from ever being visible to whoever signs in next.
 final adminManagementControllerProvider =
-    NotifierProvider<AdminManagementController, AdminManagementState>(
+    NotifierProvider.autoDispose<AdminManagementController, AdminManagementState>(
   AdminManagementController.new,
 );

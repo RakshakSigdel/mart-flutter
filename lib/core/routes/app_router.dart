@@ -4,10 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/models/models_shared/auth_session_model.dart';
+import '../../data/models/models_superadmin/admin_model.dart';
+import '../../data/models/models_user/staff_model.dart';
 import '../../presentation/feature_shared/auth/controller/auth_controller.dart';
 import '../../presentation/feature_shared/auth/screens/login_screen.dart';
+import '../../presentation/feature_superadmin/admin_management/screens/admin_form_screen.dart';
 import '../../presentation/feature_superadmin/admin_management/screens/admin_management_screen.dart';
 import '../../presentation/feature_user/dashboard/screen/dashboard_screen.dart';
+import '../../presentation/feature_user/shell/screens/admin_shell_screen.dart';
+import '../../presentation/feature_user/staff_management/screens/staff_form_screen.dart';
+import '../../presentation/feature_user/staff_management/screens/staff_management_screen.dart';
 import '../../presentation/pages/not_found_screen.dart';
 import '../../presentation/pages/splash_screen.dart';
 import '../animations/app_page_route.dart';
@@ -38,6 +44,17 @@ class _AuthRefreshListenable extends ChangeNotifier {
 String _landingRouteFor(AuthSessionModel session) =>
     session.isSuperAdmin ? Routes.adminManagement : Routes.dashboard;
 
+/// Whether [location] is part of the mart-admin sidebar area — the shell
+/// itself plus any page pushed on top of it (e.g. the hire-staff form).
+/// Superadmins are confined out of all of them, not just `/dashboard`.
+bool _isAdminShellRoute(String location) =>
+    location == Routes.dashboard || location.startsWith(Routes.staff);
+
+/// Whether [location] is part of the superadmin area — the mart list plus
+/// any page pushed on top of it (e.g. the create-mart form).
+bool _isSuperAdminRoute(String location) =>
+    location.startsWith(Routes.adminManagement);
+
 /// Route-level auth guard. Runs before every navigation (and whenever
 /// [_AuthRefreshListenable] fires), so a direct URL/deep link can't reach a
 /// protected screen just because no screen happened to check first.
@@ -66,10 +83,10 @@ String? _redirect(BuildContext context, GoRouterState state, Ref ref) {
 
   // Each role is confined to its own area; strict, not just "superadmins can
   // also see the mart dashboard" — keeps the two landing areas unambiguous.
-  if (location == Routes.adminManagement && !session.isSuperAdmin) {
+  if (_isSuperAdminRoute(location) && !session.isSuperAdmin) {
     return Routes.dashboard;
   }
-  if (location == Routes.dashboard && session.isSuperAdmin) {
+  if (_isAdminShellRoute(location) && session.isSuperAdmin) {
     return Routes.adminManagement;
   }
 
@@ -96,6 +113,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: refreshListenable,
     redirect: (context, state) => _redirect(context, state, ref),
     routes: <RouteBase>[
+      //Global Routes
       GoRoute(
         path: Routes.splash,
         name: 'splash',
@@ -109,22 +127,86 @@ final routerProvider = Provider<GoRouter>((ref) {
             AppPageRoute.fadeThrough(state, const LoginScreen()),
       ),
       GoRoute(
-        path: Routes.dashboard,
-        name: 'dashboard',
+        path: Routes.notFound,
+        name: 'notFound',
         pageBuilder: (context, state) =>
-            AppPageRoute.fadeThrough(state, const DashboardScreen()),
+            AppPageRoute.fadeThrough(state, const NotFoundScreen()),
       ),
+      // Mart-admin area: a persistent sidebar (see [AdminShellScreen]) around
+      // an IndexedStack of branches, so each keeps its own navigation stack
+      // and scroll position when switching tabs instead of rebuilding from
+      // scratch.
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AdminShellScreen(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.dashboard,
+                name: 'dashboard',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const DashboardScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.staff,
+                name: 'staff',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const StaffManagementScreen()),
+              ),
+            ],
+          ),
+        ],
+      ),
+      // Hire/edit staff — full pages rather than branches of the shell
+      // above, so they take over the whole screen (no sidebar) instead of
+      // squeezing a long form into the branch's content area.
+      GoRoute(
+        path: Routes.staffNew,
+        name: 'staffNew',
+        pageBuilder: (context, state) =>
+            AppPageRoute.sharedAxisHorizontal(state, const StaffFormScreen()),
+      ),
+      GoRoute(
+        path: Routes.staffEditPath,
+        name: 'staffEdit',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          StaffFormScreen(
+            staffId: state.pathParameters['id'],
+            initialStaff: state.extra as StaffModel?,
+          ),
+        ),
+      ),
+      //SuperAdmin Route
       GoRoute(
         path: Routes.adminManagement,
         name: 'adminManagement',
         pageBuilder: (context, state) =>
             AppPageRoute.fadeThrough(state, const AdminManagementScreen()),
       ),
+      // Create/edit mart — full pages for the same reason as the staff
+      // form routes above.
       GoRoute(
-        path: Routes.notFound,
-        name: 'notFound',
+        path: Routes.adminNew,
+        name: 'adminNew',
         pageBuilder: (context, state) =>
-            AppPageRoute.fadeThrough(state, const NotFoundScreen()),
+            AppPageRoute.sharedAxisHorizontal(state, const AdminFormScreen()),
+      ),
+      GoRoute(
+        path: Routes.adminEditPath,
+        name: 'adminEdit',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          AdminFormScreen(
+            adminId: state.pathParameters['id'],
+            initialAdmin: state.extra as AdminModel?,
+          ),
+        ),
       ),
     ],
     // Unknown path, or a failure while building a route.
