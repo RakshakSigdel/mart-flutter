@@ -3,21 +3,21 @@ import 'package:dio/dio.dart';
 import '../../../core/network/api_exception.dart';
 import '../../models/models_shared/api_response.dart';
 import '../../models/models_shared/page_response.dart';
-import '../../models/models_user/staff_model.dart';
+import '../../models/models_user/inventory_units_model.dart';
 
-/// The `/admin/staff` endpoints — the signed-in mart's own staff accounts.
+/// The `/inventory/units` endpoints — the signed-in mart's unit-of-measure
+/// dictionary.
 ///
-/// Same contract as [AdminRemoteDataSource]: parses the response envelope
-/// and only ever throws [ApiException].
-class StaffRemoteDataSource {
-  StaffRemoteDataSource(this._dio);
+/// Same contract as the other remote data sources: parses the response
+/// envelope and only ever throws [ApiException].
+class InventoryUnitsRemoteDataSource {
+  InventoryUnitsRemoteDataSource(this._dio);
 
   final Dio _dio;
 
-  Future<PageResponse<StaffModel>> list({
+  Future<PageResponse<InventoryUnitModel>> list({
     String? search,
-    StaffRole? role,
-    StaffStatus? status,
+    UnitMeasurementType? measurementType,
     // 1-indexed — the backend's first page is page 1, not page 0.
     int page = 1,
     int size = 20,
@@ -26,11 +26,10 @@ class StaffRemoteDataSource {
   }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/admin/staff',
+        '/inventory/units',
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
-          if (role != null) 'role': role.apiValue,
-          if (status != null) 'status': status.apiValue,
+          if (measurementType != null) 'measurementType': measurementType.apiValue,
           'page': page,
           'size': size,
           if (sortBy != null) 'sortBy': sortBy,
@@ -41,7 +40,7 @@ class StaffRemoteDataSource {
         response.data,
         (raw) => PageResponse.fromJson(
           raw as Map<String, dynamic>,
-          StaffModel.fromJson,
+          InventoryUnitModel.fromJson,
         ),
       );
     } on DioException catch (e) {
@@ -49,31 +48,32 @@ class StaffRemoteDataSource {
     }
   }
 
-  Future<StaffModel> getById(String id) async {
+  Future<InventoryUnitModel> getById(int id) async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>('/admin/staff/$id');
+      final response = await _dio.get<Map<String, dynamic>>('/inventory/units/$id');
       return _unwrap(
         response.data,
-        (raw) => StaffModel.fromJson(raw as Map<String, dynamic>),
+        (raw) => InventoryUnitModel.fromJson(raw as Map<String, dynamic>),
       );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
   }
 
-  /// The roles the signed-in admin is allowed to assign to staff — narrower
-  /// than the full [StaffRole] set (e.g. an admin can't hire another
-  /// `SUPER_ADMIN`).
-  Future<List<StaffRole>> assignableRoles() async {
+  /// Every unit, unpaged — for pickers that choose one (e.g. a product's
+  /// unit field). Not used by the units screen itself.
+  Future<List<InventoryUnitModel>> selection({UnitMeasurementType? measurementType}) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/admin/staff/assignable-roles',
+        '/inventory/units/selection',
+        queryParameters: {
+          if (measurementType != null) 'measurementType': measurementType.apiValue,
+        },
       );
       return _unwrap(
         response.data,
         (raw) => (raw as List<dynamic>)
-            .map((e) => StaffRole.fromApiValue(e as String?))
-            .whereType<StaffRole>()
+            .map((e) => InventoryUnitModel.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
     } on DioException catch (e) {
@@ -81,55 +81,39 @@ class StaffRemoteDataSource {
     }
   }
 
-  Future<StaffModel> hire(HireStaffRequest request) async {
+  Future<InventoryUnitModel> create(UpsertInventoryUnitRequest request) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
-        '/admin/staff',
+        '/inventory/units',
         data: request.toJson(),
       );
       return _unwrap(
         response.data,
-        (raw) => StaffModel.fromJson(raw as Map<String, dynamic>),
+        (raw) => InventoryUnitModel.fromJson(raw as Map<String, dynamic>),
       );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
   }
 
-  Future<StaffModel> update(String id, UpdateStaffRequest request) async {
+  Future<InventoryUnitModel> update(int id, UpsertInventoryUnitRequest request) async {
     try {
       final response = await _dio.put<Map<String, dynamic>>(
-        '/admin/staff/$id',
+        '/inventory/units/$id',
         data: request.toJson(),
       );
       return _unwrap(
         response.data,
-        (raw) => StaffModel.fromJson(raw as Map<String, dynamic>),
+        (raw) => InventoryUnitModel.fromJson(raw as Map<String, dynamic>),
       );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
   }
 
-  /// Retires the staff account — not a hard delete, per the same convention
-  /// as `AdminRemoteDataSource.retire`.
-  Future<String> retire(String id) async {
+  Future<String> remove(int id) async {
     try {
-      final response = await _dio.delete<Map<String, dynamic>>(
-        '/admin/staff/$id',
-      );
-      return _unwrap(response.data, (raw) => raw as String);
-    } on DioException catch (e) {
-      throw ApiException.fromDioException(e);
-    }
-  }
-
-  Future<String> resetPassword(String id, String newPassword) async {
-    try {
-      final response = await _dio.post<Map<String, dynamic>>(
-        '/admin/staff/$id/reset-password',
-        data: {'newPassword': newPassword},
-      );
+      final response = await _dio.delete<Map<String, dynamic>>('/inventory/units/$id');
       return _unwrap(response.data, (raw) => raw as String);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);

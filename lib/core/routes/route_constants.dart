@@ -28,6 +28,44 @@ class Routes {
 
   static String staffEdit(String id) => '/staff/$id/edit';
 
+  /// Shared prefix for every inventory route — `inventory_products` and
+  /// `inventory_categories` will hang off this the same way `units` does.
+  static const String inventory = '/inventory';
+
+  static const String inventoryUnits = '$inventory/units';
+
+  /// New/edit unit forms, as their own page rather than a dialog — same
+  /// reasoning as [staffNew].
+  static const String inventoryUnitNew = '$inventoryUnits/new';
+
+  /// Path template for registering the edit-unit route with [GoRouter].
+  /// Screens must not build this string by hand — use [inventoryUnitEdit].
+  static const String inventoryUnitEditPath = '$inventoryUnits/:id/edit';
+
+  /// Unit ids are numeric (unlike staff/mart ids, which are UUIDs) — see
+  /// [InventoryUnitModel.id].
+  static String inventoryUnitEdit(int id) => '$inventoryUnits/$id/edit';
+
+  static const String inventoryCategories = '$inventory/categories';
+
+  /// New/edit category forms, as their own page — same reasoning as
+  /// [staffNew].
+  static const String inventoryCategoryNew = '$inventoryCategories/new';
+
+  /// Path template for registering the edit-category route with
+  /// [GoRouter]. Screens must not build this string by hand — use
+  /// [inventoryCategoryEdit].
+  static const String inventoryCategoryEditPath = '$inventoryCategories/:id/edit';
+
+  static String inventoryCategoryEdit(int id) => '$inventoryCategories/$id/edit';
+
+  /// Path template for registering the category-detail route (unit policy,
+  /// product count) with [GoRouter]. Screens must not build this string by
+  /// hand — use [inventoryCategoryDetail].
+  static const String inventoryCategoryDetailPath = '$inventoryCategories/:id';
+
+  static String inventoryCategoryDetail(int id) => '$inventoryCategories/$id';
+
   //-----------Superadmin---------------
   static const String adminManagement = '/admin/management';
 

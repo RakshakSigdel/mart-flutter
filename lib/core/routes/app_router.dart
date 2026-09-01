@@ -5,12 +5,19 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/models/models_shared/auth_session_model.dart';
 import '../../data/models/models_superadmin/admin_model.dart';
+import '../../data/models/models_user/inventory_categories_model.dart';
+import '../../data/models/models_user/inventory_units_model.dart';
 import '../../data/models/models_user/staff_model.dart';
 import '../../presentation/feature_shared/auth/controller/auth_controller.dart';
 import '../../presentation/feature_shared/auth/screens/login_screen.dart';
 import '../../presentation/feature_superadmin/admin_management/screens/admin_form_screen.dart';
 import '../../presentation/feature_superadmin/admin_management/screens/admin_management_screen.dart';
 import '../../presentation/feature_user/dashboard/screen/dashboard_screen.dart';
+import '../../presentation/feature_user/inventory_categories/screens/inventory_categories_screen.dart';
+import '../../presentation/feature_user/inventory_categories/screens/inventory_category_detail_screen.dart';
+import '../../presentation/feature_user/inventory_categories/screens/inventory_category_form_screen.dart';
+import '../../presentation/feature_user/inventory_units/screens/inventory_unit_form_screen.dart';
+import '../../presentation/feature_user/inventory_units/screens/inventory_units_screen.dart';
 import '../../presentation/feature_user/shell/screens/admin_shell_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_form_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_management_screen.dart';
@@ -48,7 +55,9 @@ String _landingRouteFor(AuthSessionModel session) =>
 /// itself plus any page pushed on top of it (e.g. the hire-staff form).
 /// Superadmins are confined out of all of them, not just `/dashboard`.
 bool _isAdminShellRoute(String location) =>
-    location == Routes.dashboard || location.startsWith(Routes.staff);
+    location == Routes.dashboard ||
+    location.startsWith(Routes.staff) ||
+    location.startsWith(Routes.inventory);
 
 /// Whether [location] is part of the superadmin area — the mart list plus
 /// any page pushed on top of it (e.g. the create-mart form).
@@ -150,6 +159,29 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Branch order here must match `adminNavItems`' order in
+          // admin_nav_item.dart — the sidebar maps a tap on item N straight
+          // to `navigationShell.goBranch(N)`.
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.inventoryUnits,
+                name: 'inventoryUnits',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const InventoryUnitsScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.inventoryCategories,
+                name: 'inventoryCategories',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const InventoryCategoriesScreen()),
+              ),
+            ],
+          ),
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -179,6 +211,56 @@ final routerProvider = Provider<GoRouter>((ref) {
           StaffFormScreen(
             staffId: state.pathParameters['id'],
             initialStaff: state.extra as StaffModel?,
+          ),
+        ),
+      ),
+      // Add/edit unit — full pages for the same reason as the staff form
+      // routes above.
+      GoRoute(
+        path: Routes.inventoryUnitNew,
+        name: 'inventoryUnitNew',
+        pageBuilder: (context, state) =>
+            AppPageRoute.sharedAxisHorizontal(state, const InventoryUnitFormScreen()),
+      ),
+      GoRoute(
+        path: Routes.inventoryUnitEditPath,
+        name: 'inventoryUnitEdit',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          InventoryUnitFormScreen(
+            unitId: int.tryParse(state.pathParameters['id'] ?? ''),
+            initialUnit: state.extra as InventoryUnitModel?,
+          ),
+        ),
+      ),
+      // Add/edit category — full pages for the same reason as the staff
+      // form routes above.
+      GoRoute(
+        path: Routes.inventoryCategoryNew,
+        name: 'inventoryCategoryNew',
+        pageBuilder: (context, state) =>
+            AppPageRoute.sharedAxisHorizontal(state, const InventoryCategoryFormScreen()),
+      ),
+      GoRoute(
+        path: Routes.inventoryCategoryEditPath,
+        name: 'inventoryCategoryEdit',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          InventoryCategoryFormScreen(
+            categoryId: int.tryParse(state.pathParameters['id'] ?? ''),
+            initialCategory: state.extra as InventoryCategoryModel?,
+          ),
+        ),
+      ),
+      // Category detail — unit policy and product count, the one thing the
+      // plain list doesn't carry.
+      GoRoute(
+        path: Routes.inventoryCategoryDetailPath,
+        name: 'inventoryCategoryDetail',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          InventoryCategoryDetailScreen(
+            categoryId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
           ),
         ),
       ),

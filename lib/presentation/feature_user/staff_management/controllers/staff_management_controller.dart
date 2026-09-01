@@ -43,7 +43,11 @@ class StaffManagementState {
         search: '',
         roleFilter: null,
         statusFilter: null,
-        pageNumber: 0,
+        // The backend's pages are 1-indexed (page 1 is the first page) — a
+        // request for page 0 silently gets clamped to page 1 there, so
+        // starting our own counter at 0 meant "next page" only ever asked
+        // for page 1 again instead of advancing to page 2.
+        pageNumber: 1,
         pageSize: 20,
         totalPages: 0,
         totalElements: 0,
@@ -84,7 +88,7 @@ class StaffManagementState {
 
   bool get isEmpty => !isLoading && error == null && staff.isEmpty;
   bool get hasNextPage => !isLast;
-  bool get hasPreviousPage => pageNumber > 0;
+  bool get hasPreviousPage => pageNumber > 1;
 
   StaffManagementState copyWith({
     List<StaffModel>? staff,
@@ -139,7 +143,7 @@ class StaffManagementController extends Notifier<StaffManagementState> {
 
   StaffRemoteDataSource get _dataSource => ref.read(staffRemoteDataSourceProvider);
 
-  Future<void> refresh() => _load(page: 0);
+  Future<void> refresh() => _load(page: 1);
 
   Future<void> nextPage() {
     if (!state.hasNextPage) return Future.value();
@@ -153,16 +157,16 @@ class StaffManagementController extends Notifier<StaffManagementState> {
 
   void setSearch(String value) => state = state.copyWith(search: value);
 
-  Future<void> submitSearch() => _load(page: 0);
+  Future<void> submitSearch() => _load(page: 1);
 
   Future<void> setRoleFilter(StaffRole? role) {
     state = state.copyWith(roleFilter: role);
-    return _load(page: 0);
+    return _load(page: 1);
   }
 
   Future<void> setStatusFilter(StaffStatus? status) {
     state = state.copyWith(statusFilter: status);
-    return _load(page: 0);
+    return _load(page: 1);
   }
 
   Future<void> _load({required int page}) async {
@@ -178,7 +182,11 @@ class StaffManagementController extends Notifier<StaffManagementState> {
       state = state.copyWith(
         staff: result.content,
         isLoading: false,
-        pageNumber: result.pageNumber,
+        // The page we asked for, not `result.pageNumber` — the backend's
+        // own indexing for that field isn't reliable (see the comment on
+        // `pageNumber` in `initial()`), but it always returns the page we
+        // requested, so tracking that directly sidesteps the ambiguity.
+        pageNumber: page,
         totalPages: result.totalPages,
         totalElements: result.totalElements,
         isLast: result.last,

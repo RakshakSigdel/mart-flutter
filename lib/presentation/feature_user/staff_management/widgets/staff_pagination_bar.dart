@@ -25,9 +25,10 @@ class StaffPaginationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // pageNumber is already 1-indexed, matching the backend's own paging.
     final pageLabel = totalPages == 0
         ? 'No results'
-        : 'Page ${pageNumber + 1} of $totalPages · $totalElements staff member${totalElements == 1 ? '' : 's'}';
+        : 'Page $pageNumber of $totalPages · $totalElements staff member${totalElements == 1 ? '' : 's'}';
 
     return Row(
       children: [

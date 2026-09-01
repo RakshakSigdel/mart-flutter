@@ -17,7 +17,8 @@ class AdminRemoteDataSource {
   Future<PageResponse<AdminModel>> list({
     String? search,
     AdminProvisioningStatus? provisioningStatus,
-    int page = 0,
+    // 1-indexed — the backend's first page is page 1, not page 0.
+    int page = 1,
     int size = 20,
     String? sortBy,
     String? sortDirection,

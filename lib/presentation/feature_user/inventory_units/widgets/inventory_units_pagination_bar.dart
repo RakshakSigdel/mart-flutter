@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/core.dart';
 
-/// Prev/next controls plus a "Page X of Y · N marts" summary.
-class AdminPaginationBar extends StatelessWidget {
-  const AdminPaginationBar({
+/// Prev/next controls plus a "Page X of Y · N units" summary.
+class InventoryUnitsPaginationBar extends StatelessWidget {
+  const InventoryUnitsPaginationBar({
     super.key,
     required this.pageNumber,
     required this.totalPages,
@@ -28,7 +28,7 @@ class AdminPaginationBar extends StatelessWidget {
     // pageNumber is already 1-indexed, matching the backend's own paging.
     final pageLabel = totalPages == 0
         ? 'No results'
-        : 'Page $pageNumber of $totalPages · $totalElements mart${totalElements == 1 ? '' : 's'}';
+        : 'Page $pageNumber of $totalPages · $totalElements unit${totalElements == 1 ? '' : 's'}';
 
     return Row(
       children: [
