@@ -11,6 +11,7 @@ class AdminToolbar extends StatelessWidget {
   const AdminToolbar({
     super.key,
     required this.searchController,
+    required this.onSearchChanged,
     required this.onSearchSubmitted,
     required this.statusFilter,
     required this.onStatusFilterChanged,
@@ -20,6 +21,7 @@ class AdminToolbar extends StatelessWidget {
   });
 
   final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onSearchSubmitted;
   final AdminProvisioningStatus? statusFilter;
   final ValueChanged<AdminProvisioningStatus?> onStatusFilterChanged;
@@ -53,6 +55,7 @@ class AdminToolbar extends StatelessWidget {
       hint: 'Search by company or username',
       prefixIcon: Icons.search,
       textInputAction: TextInputAction.search,
+      onChanged: onSearchChanged,
       onSubmitted: onSearchSubmitted,
     );
 

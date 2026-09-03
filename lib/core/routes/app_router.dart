@@ -159,8 +159,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       // and scroll position when switching tabs instead of rebuilding from
       // scratch.
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) =>
-            AdminShellScreen(navigationShell: navigationShell),
+        builder: (context, state, navigationShell) => AdminShellScreen(
+          location: state.matchedLocation,
+          navigationShell: navigationShell,
+        ),
         branches: [
           StatefulShellBranch(
             routes: [
@@ -172,9 +174,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Branch order here must match `adminNavItems`' order in
-          // admin_nav_item.dart — the sidebar maps a tap on item N straight
-          // to `navigationShell.goBranch(N)`.
+          // Branch order here is otherwise unconstrained — the sidebar
+          // navigates by path (`context.go`), not branch index, so it
+          // doesn't need to match whatever order `/me/sidebar` returns.
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -242,8 +244,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.inventoryUnitNew,
         name: 'inventoryUnitNew',
-        pageBuilder: (context, state) =>
-            AppPageRoute.sharedAxisHorizontal(state, const InventoryUnitFormScreen()),
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          const InventoryUnitFormScreen(),
+        ),
       ),
       GoRoute(
         path: Routes.inventoryUnitEditPath,
@@ -261,8 +265,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.inventoryCategoryNew,
         name: 'inventoryCategoryNew',
-        pageBuilder: (context, state) =>
-            AppPageRoute.sharedAxisHorizontal(state, const InventoryCategoryFormScreen()),
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          const InventoryCategoryFormScreen(),
+        ),
       ),
       GoRoute(
         path: Routes.inventoryCategoryEditPath,
@@ -294,8 +300,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.inventoryProductNew,
         name: 'inventoryProductNew',
-        pageBuilder: (context, state) =>
-            AppPageRoute.sharedAxisHorizontal(state, const InventoryProductFormScreen()),
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          const InventoryProductFormScreen(),
+        ),
       ),
       GoRoute(
         path: Routes.inventoryProductEditPath,

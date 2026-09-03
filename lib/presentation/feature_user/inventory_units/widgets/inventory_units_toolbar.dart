@@ -11,6 +11,7 @@ class InventoryUnitsToolbar extends StatelessWidget {
   const InventoryUnitsToolbar({
     super.key,
     required this.searchController,
+    required this.onSearchChanged,
     required this.onSearchSubmitted,
     required this.measurementTypeFilter,
     required this.onMeasurementTypeFilterChanged,
@@ -18,6 +19,7 @@ class InventoryUnitsToolbar extends StatelessWidget {
   });
 
   final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onSearchSubmitted;
   final UnitMeasurementType? measurementTypeFilter;
   final ValueChanged<UnitMeasurementType?> onMeasurementTypeFilterChanged;
@@ -42,6 +44,7 @@ class InventoryUnitsToolbar extends StatelessWidget {
       hint: 'Search by name or symbol',
       prefixIcon: Icons.search,
       textInputAction: TextInputAction.search,
+      onChanged: onSearchChanged,
       onSubmitted: onSearchSubmitted,
     );
 

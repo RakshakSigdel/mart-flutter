@@ -11,6 +11,7 @@ class StaffToolbar extends StatelessWidget {
   const StaffToolbar({
     super.key,
     required this.searchController,
+    required this.onSearchChanged,
     required this.onSearchSubmitted,
     required this.roleFilter,
     required this.onRoleFilterChanged,
@@ -20,6 +21,7 @@ class StaffToolbar extends StatelessWidget {
   });
 
   final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onSearchSubmitted;
   final StaffRole? roleFilter;
   final ValueChanged<StaffRole?> onRoleFilterChanged;
@@ -55,6 +57,7 @@ class StaffToolbar extends StatelessWidget {
       hint: 'Search by name, username or email',
       prefixIcon: Icons.search,
       textInputAction: TextInputAction.search,
+      onChanged: onSearchChanged,
       onSubmitted: onSearchSubmitted,
     );
 

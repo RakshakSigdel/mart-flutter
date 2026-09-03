@@ -6,7 +6,10 @@ import '../../../../core/core.dart';
 import '../../auth/controller/auth_controller.dart';
 
 /// The signed-in user's initial, as a small tappable circle — the gateway
-/// to [Routes.profile] from any `AppBar` in the app, regardless of role.
+/// to [Routes.profile] from a top-level `AppBar` that has no sidebar of its
+/// own to carry an "Account" link instead (today: only the superadmin
+/// area's own screen — the mart-admin shell's sidebar handles this job for
+/// every other role, see `SidebarController`/`AdminSidebar`).
 class ProfileAvatarButton extends ConsumerWidget {
   const ProfileAvatarButton({super.key});
 
@@ -31,10 +34,15 @@ class ProfileAvatarButton extends ConsumerWidget {
               width: 36,
               height: 36,
               alignment: Alignment.center,
-              decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
               child: Text(
                 initial,
-                style: AppTypography.subtitle.copyWith(color: AppColors.textOnPrimary),
+                style: AppTypography.subtitle.copyWith(
+                  color: AppColors.textOnPrimary,
+                ),
               ),
             ),
           ),

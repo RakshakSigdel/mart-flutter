@@ -31,11 +31,25 @@ class AdminManagementScreen extends ConsumerStatefulWidget {
 class _AdminManagementScreenState
     extends ConsumerState<AdminManagementScreen> {
   final _searchController = TextEditingController();
+  final _searchDebouncer = Debouncer();
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchDebouncer.dispose();
     super.dispose();
+  }
+
+  /// Live search: fires once typing settles, but only once there's enough
+  /// to search on — clearing the field still searches immediately, so the
+  /// full list comes back without needing Enter.
+  void _onSearchChanged(String value) {
+    _controller.setSearch(value);
+    if (value.trim().length < 2 && value.isNotEmpty) {
+      _searchDebouncer.cancel();
+      return;
+    }
+    _searchDebouncer.run(_controller.submitSearch);
   }
 
   AdminManagementController get _controller =>
@@ -182,7 +196,9 @@ class _AdminManagementScreenState
               children: [
                 AdminToolbar(
                   searchController: _searchController,
+                  onSearchChanged: _onSearchChanged,
                   onSearchSubmitted: (value) {
+                    _searchDebouncer.cancel();
                     _controller.setSearch(value);
                     _controller.submitSearch();
                   },

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/core.dart';
@@ -16,74 +18,80 @@ class InventoryProductsTable extends StatelessWidget {
 
   final List<ProductModel> products;
   final Set<int> busyIds;
-  final void Function(ProductModel product, InventoryProductRowAction action) onAction;
+  final void Function(ProductModel product, InventoryProductRowAction action)
+  onAction;
 
   @override
   Widget build(BuildContext context) {
     final headerStyle = AppTypography.eyebrow.copyWith(letterSpacing: 0.4);
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 900),
-        child: DataTable(
-          headingRowColor: const WidgetStatePropertyAll(AppColors.surface),
-          headingTextStyle: headerStyle,
-          columnSpacing: AppSpacing.lg,
-          columns: const [
-            DataColumn(label: Text('PRODUCT')),
-            DataColumn(label: Text('CATEGORY')),
-            DataColumn(label: Text('SELLING PRICE')),
-            DataColumn(label: Text('STATUS')),
-            DataColumn(label: Text('')),
-          ],
-          rows: [
-            for (final product in products)
-              DataRow(
-                cells: [
-                  DataCell(
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 240),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            product.name,
-                            style: AppTypography.subtitle,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            [
-                              if (product.productCode != null) product.productCode!,
-                              if (product.brand != null) product.brand!,
-                            ].join(' · '),
-                            style: AppTypography.caption,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minWidth: math.max(900, constraints.maxWidth),
+          ),
+          child: DataTable(
+            headingRowColor: const WidgetStatePropertyAll(AppColors.surface),
+            headingTextStyle: headerStyle,
+            columnSpacing: AppSpacing.lg,
+            columns: const [
+              DataColumn(label: Text('PRODUCT')),
+              DataColumn(label: Text('CATEGORY')),
+              DataColumn(label: Text('SELLING PRICE')),
+              DataColumn(label: Text('STATUS')),
+              DataColumn(label: Text('')),
+            ],
+            rows: [
+              for (final product in products)
+                DataRow(
+                  cells: [
+                    DataCell(
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 240),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              product.name,
+                              style: AppTypography.subtitle,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              [
+                                if (product.productCode != null)
+                                  product.productCode!,
+                                if (product.brand != null) product.brand!,
+                              ].join(' · '),
+                              style: AppTypography.caption,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  DataCell(Text(product.categoryName ?? '—')),
-                  DataCell(
-                    Text(
-                      product.sellingPrice == null
-                          ? '—'
-                          : '${formatMoney(product.sellingPrice)}'
-                              '${product.sellingUnitSymbol != null ? ' / ${product.sellingUnitSymbol}' : ''}',
+                    DataCell(Text(product.categoryName ?? '—')),
+                    DataCell(
+                      Text(
+                        product.sellingPrice == null
+                            ? '—'
+                            : '${formatMoney(product.sellingPrice)}'
+                                  '${product.sellingUnitSymbol != null ? ' / ${product.sellingUnitSymbol}' : ''}',
+                      ),
                     ),
-                  ),
-                  DataCell(ActiveStatusBadge(active: product.active)),
-                  DataCell(
-                    InventoryProductRowActionsMenu(
-                      isBusy: busyIds.contains(product.id),
-                      onSelected: (action) => onAction(product, action),
+                    DataCell(ActiveStatusBadge(active: product.active)),
+                    DataCell(
+                      InventoryProductRowActionsMenu(
+                        isBusy: busyIds.contains(product.id),
+                        onSelected: (action) => onAction(product, action),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-          ],
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -26,6 +26,9 @@ export 'animations/app_transitions.dart';
 // into every file that imports core.dart.
 export 'routes/route_constants.dart';
 
+// ─── Utilities ────────────────────────────────────────────────────────────────
+export 'utils/debouncer.dart';
+
 // ─── Design system widgets ────────────────────────────────────────────────────
 export 'widgets/app_badge.dart';
 export 'widgets/app_button.dart';

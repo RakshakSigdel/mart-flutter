@@ -4,19 +4,47 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/core.dart';
 import '../../../feature_shared/auth/controller/auth_controller.dart';
-import '../../../feature_shared/profile/widgets/profile_avatar_button.dart';
-import '../models/admin_nav_item.dart';
+import '../controllers/sidebar_controller.dart';
+import '../models/sidebar_menu_registry.dart';
 import '../widgets/admin_sidebar.dart';
+
+/// Fallback page titles for a branch route the current sidebar data
+/// doesn't happen to name — e.g. a role whose `/me/sidebar` response
+/// omits an item for a page the user reached by direct URL. Keyed by the
+/// same paths `AppRouter` registers as shell branches.
+const Map<String, String> _fallbackTitles = {
+  Routes.dashboard: 'Dashboard',
+  Routes.inventoryUnits: 'Units',
+  Routes.inventoryCategories: 'Categories',
+  Routes.inventoryProducts: 'Products',
+  Routes.staff: 'Staff',
+};
 
 /// Shared layout for every admin-area screen (dashboard, staff, …): a
 /// responsive/collapsible sidebar on tablet+ screens, a [Drawer] on phones,
 /// wrapping whichever branch [navigationShell] is currently showing.
 ///
+/// The sidebar itself is data-driven — see [SidebarController] — so
+/// switching branches here goes through [GoRouter.go] against each entry's
+/// own path rather than [StatefulNavigationShell.goBranch]'s branch index,
+/// which the backend's menu shape has no reason to line up with.
+///
 /// Built as the `builder` of a `StatefulShellRoute.indexedStack` so each
 /// branch keeps its own navigation stack and scroll position when switching
 /// tabs — see `app_router.dart`.
 class AdminShellScreen extends ConsumerStatefulWidget {
-  const AdminShellScreen({super.key, required this.navigationShell});
+  const AdminShellScreen({
+    super.key,
+    required this.location,
+    required this.navigationShell,
+  });
+
+  /// The active branch's own matched location (e.g. `/inventory/units`) —
+  /// threaded straight from `StatefulShellRoute.indexedStack`'s `builder`
+  /// rather than read back via `GoRouterState.of(context)`, since this
+  /// widget's own context sits above `navigationShell`'s nested Navigator
+  /// and isn't guaranteed to resolve to the active branch's route.
+  final String location;
 
   final StatefulNavigationShell navigationShell;
 
@@ -33,25 +61,63 @@ class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
     if (mounted) context.go(Routes.login);
   }
 
-  void _onItemSelected(int index, {required bool isWide}) {
-    widget.navigationShell.goBranch(
-      index,
-      initialLocation: index == widget.navigationShell.currentIndex,
-    );
+  void _onNavigate(String path, {required bool isWide}) {
+    // Branch tabs replace the current location (tab-like); anything else
+    // (e.g. the profile page) is a full page outside the shell, so it gets
+    // pushed on top instead — see `isSidebarShellBranch`'s doc comment for
+    // why that's what gives it a working back action.
+    if (isSidebarShellBranch(path)) {
+      context.go(path);
+    } else {
+      context.push(path);
+    }
     if (!isWide && (_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
       _scaffoldKey.currentState?.closeDrawer();
     }
+  }
+
+  String _titleFor(List<ResolvedSidebarSection> sections, String location) {
+    for (final section in sections) {
+      for (final entry in section.entries) {
+        switch (entry) {
+          case ResolvedSidebarLink():
+            if (entry.path == location) return entry.name;
+          case ResolvedSidebarGroup():
+            for (final child in entry.children) {
+              if (child.path == location) return child.name;
+            }
+        }
+      }
+    }
+    return _fallbackTitles[location] ?? 'Mart Admin';
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final session = authState is AuthAuthenticated ? authState.session : null;
-    final companyName = session?.companyName ?? session?.displayName ?? 'Mart Admin';
+    final companyName =
+        session?.companyName ?? session?.displayName ?? 'Mart Admin';
+    final sidebarState = ref.watch(sidebarControllerProvider);
     final width = MediaQuery.sizeOf(context).width;
     final isWide = width >= AppBreakpoints.tablet;
-    final currentIndex = widget.navigationShell.currentIndex;
-    final currentItem = adminNavItems[currentIndex];
+    final location = widget.location;
+    final title = _titleFor(sidebarState.sections, location);
+
+    Widget buildSidebar({required bool isWide}) => AdminSidebar(
+      sections: sidebarState.sections,
+      selectedPath: location,
+      onNavigate: (path) => _onNavigate(path, isWide: isWide),
+      companyName: companyName,
+      onLogout: _logout,
+      isCollapsed: isWide && _isCollapsed,
+      onToggleCollapse: isWide
+          ? () => setState(() => _isCollapsed = !_isCollapsed)
+          : null,
+      isRefreshing: sidebarState.isLoading,
+      refreshFailed: sidebarState.error != null,
+      onRetry: () => ref.read(sidebarControllerProvider.notifier).refresh(),
+    );
 
     return Scaffold(
       key: _scaffoldKey,
@@ -66,33 +132,20 @@ class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
                 tooltip: 'Menu',
                 onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               ),
-        title: Text(currentItem.label),
-        actions: const [ProfileAvatarButton()],
+        title: Text(title),
       ),
       drawer: isWide
           ? null
           : Drawer(
               backgroundColor: AppColors.card,
               width: AdminSidebar.expandedWidth,
-              child: AdminSidebar(
-                selectedIndex: currentIndex,
-                onItemSelected: (index) => _onItemSelected(index, isWide: false),
-                companyName: companyName,
-                onLogout: _logout,
-              ),
+              child: buildSidebar(isWide: false),
             ),
       body: isWide
           ? Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AdminSidebar(
-                  selectedIndex: currentIndex,
-                  onItemSelected: (index) => _onItemSelected(index, isWide: true),
-                  companyName: companyName,
-                  onLogout: _logout,
-                  isCollapsed: _isCollapsed,
-                  onToggleCollapse: () => setState(() => _isCollapsed = !_isCollapsed),
-                ),
+                buildSidebar(isWide: true),
                 Expanded(child: widget.navigationShell),
               ],
             )

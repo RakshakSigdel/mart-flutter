@@ -9,8 +9,18 @@ import '../controllers/profile_controller.dart';
 import '../widgets/change_password_dialog.dart';
 
 const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _formatDate(DateTime? date) {
@@ -21,7 +31,8 @@ String _formatDate(DateTime? date) {
 
 /// "Who am I, and which mart am I working in" — the signed-in user's own
 /// account, with a gateway to changing their own password. Reachable from
-/// [ProfileAvatarButton] on any `AppBar`, regardless of role.
+/// [ProfileAvatarButton] for roles with no sidebar of their own (today:
+/// superadmin), and from the "Account" sidebar entry for every other role.
 ///
 /// Full page rather than a dropdown/popover — same reasoning as every other
 /// detail screen in this app: there's real content here, not a couple of
@@ -73,7 +84,9 @@ class ProfileScreen extends ConsumerWidget {
 
     if (profile == null) return const SizedBox.shrink();
 
-    final initial = profile.displayName.isNotEmpty ? profile.displayName[0].toUpperCase() : '?';
+    final initial = profile.displayName.isNotEmpty
+        ? profile.displayName[0].toUpperCase()
+        : '?';
 
     return Center(
       child: SingleChildScrollView(
@@ -97,14 +110,19 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       child: Text(
                         initial,
-                        style: AppTypography.heading.copyWith(color: AppColors.textOnPrimary),
+                        style: AppTypography.heading.copyWith(
+                          color: AppColors.textOnPrimary,
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(profile.displayName, style: AppTypography.title),
                     if (profile.role != null) ...[
                       const SizedBox(height: AppSpacing.xs),
-                      AppBadge(label: profile.role!, tone: AppBadgeTone.primary),
+                      AppBadge(
+                        label: profile.role!,
+                        tone: AppBadgeTone.primary,
+                      ),
                     ],
                   ],
                 ),
@@ -116,11 +134,23 @@ class ProfileScreen extends ConsumerWidget {
                   children: [
                     _InfoRow(label: 'Username', value: profile.username),
                     _InfoRow(label: 'Email', value: profile.email ?? '—'),
-                    _InfoRow(label: 'Mobile number', value: profile.mobileNumber ?? '—'),
-                    _InfoRow(label: 'Company', value: profile.companyName ?? '—'),
+                    _InfoRow(
+                      label: 'Mobile number',
+                      value: profile.mobileNumber ?? '—',
+                    ),
+                    _InfoRow(
+                      label: 'Company',
+                      value: profile.companyName ?? '—',
+                    ),
                     _InfoRow(label: 'Status', value: profile.status ?? '—'),
-                    _InfoRow(label: 'Last login', value: _formatDate(profile.lastLoginAt)),
-                    _InfoRow(label: 'Account expires', value: _formatDate(profile.expiresAt)),
+                    _InfoRow(
+                      label: 'Last login',
+                      value: _formatDate(profile.lastLoginAt),
+                    ),
+                    _InfoRow(
+                      label: 'Account expires',
+                      value: _formatDate(profile.expiresAt),
+                    ),
                   ],
                 ),
               ),
@@ -163,7 +193,10 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          Text(label, style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted)),
+          Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(

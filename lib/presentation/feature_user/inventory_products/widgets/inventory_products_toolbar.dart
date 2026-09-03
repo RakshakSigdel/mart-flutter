@@ -11,6 +11,7 @@ class InventoryProductsToolbar extends StatelessWidget {
   const InventoryProductsToolbar({
     super.key,
     required this.searchController,
+    required this.onSearchChanged,
     required this.onSearchSubmitted,
     required this.categoryOptions,
     required this.categoryFilter,
@@ -21,6 +22,7 @@ class InventoryProductsToolbar extends StatelessWidget {
   });
 
   final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onSearchSubmitted;
   final List<InventoryCategoryModel> categoryOptions;
   final int? categoryFilter;
@@ -45,6 +47,7 @@ class InventoryProductsToolbar extends StatelessWidget {
       hint: 'Search by name or product code',
       prefixIcon: Icons.search,
       textInputAction: TextInputAction.search,
+      onChanged: onSearchChanged,
       onSubmitted: onSearchSubmitted,
     );
 

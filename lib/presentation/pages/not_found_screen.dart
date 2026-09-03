@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/core.dart';
 
-/// Shown for any unknown route, and whenever go_router fails to build one.
+/// Shown for any unknown route, whenever go_router fails to build one, and
+/// (pushed directly at [Routes.notFound]) for a sidebar item this build of
+/// the app doesn't have a screen for yet — see `sidebar_menu_registry.dart`.
 class NotFoundScreen extends StatelessWidget {
   const NotFoundScreen({super.key, this.location});
 
@@ -14,6 +16,13 @@ class NotFoundScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Reached by pushing on top of something (a sidebar link to a page
+    // this build doesn't implement yet, mainly) — pop back to it directly
+    // rather than sending the user all the way to their landing screen.
+    // Only a genuinely bad deep link (nothing underneath to pop to) falls
+    // back to that.
+    final canGoBack = context.canPop();
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -75,9 +84,15 @@ class NotFoundScreen extends StatelessWidget {
                         ],
                         const SizedBox(height: AppSpacing.lg),
                         AppButton(
-                          label: 'Back to start',
+                          label: canGoBack ? 'Go back' : 'Back to start',
                           leading: const Icon(Icons.arrow_back),
-                          onPressed: () => context.go(Routes.splash),
+                          onPressed: () {
+                            if (canGoBack) {
+                              context.pop();
+                            } else {
+                              context.go(Routes.splash);
+                            }
+                          },
                         ),
                       ],
                     ),

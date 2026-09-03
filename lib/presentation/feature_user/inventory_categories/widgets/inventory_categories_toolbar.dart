@@ -10,11 +10,13 @@ class InventoryCategoriesToolbar extends StatelessWidget {
   const InventoryCategoriesToolbar({
     super.key,
     required this.searchController,
+    required this.onSearchChanged,
     required this.onSearchSubmitted,
     required this.onAddPressed,
   });
 
   final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onSearchSubmitted;
   final VoidCallback onAddPressed;
 
@@ -28,6 +30,7 @@ class InventoryCategoriesToolbar extends StatelessWidget {
       hint: 'Search by name',
       prefixIcon: Icons.search,
       textInputAction: TextInputAction.search,
+      onChanged: onSearchChanged,
       onSubmitted: onSearchSubmitted,
     );
 

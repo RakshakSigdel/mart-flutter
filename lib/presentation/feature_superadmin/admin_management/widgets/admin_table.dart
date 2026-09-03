@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/core.dart';
@@ -23,82 +25,88 @@ class AdminTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final headerStyle = AppTypography.eyebrow.copyWith(letterSpacing: 0.4);
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 900),
-        child: DataTable(
-          headingRowColor: const WidgetStatePropertyAll(AppColors.surface),
-          headingTextStyle: headerStyle,
-          columnSpacing: AppSpacing.lg,
-          columns: const [
-            DataColumn(label: Text('COMPANY')),
-            DataColumn(label: Text('CONTACT')),
-            DataColumn(label: Text('STATUS')),
-            DataColumn(label: Text('PROVISIONING')),
-            DataColumn(label: Text('SUBSCRIPTION')),
-            DataColumn(label: Text('')),
-          ],
-          rows: [
-            for (final admin in admins)
-              DataRow(
-                cells: [
-                  DataCell(
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 220),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            admin.companyName,
-                            style: AppTypography.subtitle,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            admin.slug,
-                            style: AppTypography.caption,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minWidth: math.max(900, constraints.maxWidth),
+          ),
+          child: DataTable(
+            headingRowColor: const WidgetStatePropertyAll(AppColors.surface),
+            headingTextStyle: headerStyle,
+            columnSpacing: AppSpacing.lg,
+            columns: const [
+              DataColumn(label: Text('COMPANY')),
+              DataColumn(label: Text('CONTACT')),
+              DataColumn(label: Text('STATUS')),
+              DataColumn(label: Text('PROVISIONING')),
+              DataColumn(label: Text('SUBSCRIPTION')),
+              DataColumn(label: Text('')),
+            ],
+            rows: [
+              for (final admin in admins)
+                DataRow(
+                  cells: [
+                    DataCell(
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 220),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              admin.companyName,
+                              style: AppTypography.subtitle,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              admin.slug,
+                              style: AppTypography.caption,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  DataCell(
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 200),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            admin.username,
-                            style: AppTypography.bodySmall,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            admin.email,
-                            style: AppTypography.caption,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                    DataCell(
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 200),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              admin.username,
+                              style: AppTypography.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              admin.email,
+                              style: AppTypography.caption,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  DataCell(AccountStatusBadge(status: admin.status)),
-                  DataCell(
-                    ProvisioningStatusBadge(status: admin.provisioningStatus),
-                  ),
-                  DataCell(Text(formatAdminDate(admin.subscriptionExpiresAt))),
-                  DataCell(
-                    AdminRowActionsMenu(
-                      isBusy: busyIds.contains(admin.id),
-                      onSelected: (action) => onAction(admin, action),
+                    DataCell(AccountStatusBadge(status: admin.status)),
+                    DataCell(
+                      ProvisioningStatusBadge(status: admin.provisioningStatus),
                     ),
-                  ),
-                ],
-              ),
-          ],
+                    DataCell(
+                      Text(formatAdminDate(admin.subscriptionExpiresAt)),
+                    ),
+                    DataCell(
+                      AdminRowActionsMenu(
+                        isBusy: busyIds.contains(admin.id),
+                        onSelected: (action) => onAction(admin, action),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

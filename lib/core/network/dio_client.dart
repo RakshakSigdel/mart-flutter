@@ -20,7 +20,8 @@ class ApiConfig {
 
   static String get baseUrl {
     if (!kIsWeb && Platform.isAndroid) {
-      return 'http://192.168.88.26:$_port$_path';
+      //adb reverse tcp:1200 tcp:1200
+      return 'http://localhost:$_port$_path';
     }
     return 'http://localhost:$_port$_path';
   }
@@ -76,13 +77,15 @@ class DioClient {
       ),
     );
     //Print every request response and everything - used for debugging
-    LogInterceptor(
-      request: true,
-      requestHeader: true,
-      requestBody: true,
-      responseHeader: true,
-      responseBody: true,
-      error: true,
+    dio.interceptors.add(
+      LogInterceptor(
+        request: true,
+        requestHeader: true,
+        requestBody: true,
+        responseHeader: true,
+        responseBody: true,
+        error: true,
+      ),
     );
 
     return dio;
