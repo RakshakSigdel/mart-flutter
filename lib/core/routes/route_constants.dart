@@ -62,9 +62,11 @@ class Routes {
   /// Path template for registering the edit-category route with
   /// [GoRouter]. Screens must not build this string by hand — use
   /// [inventoryCategoryEdit].
-  static const String inventoryCategoryEditPath = '$inventoryCategories/:id/edit';
+  static const String inventoryCategoryEditPath =
+      '$inventoryCategories/:id/edit';
 
-  static String inventoryCategoryEdit(int id) => '$inventoryCategories/$id/edit';
+  static String inventoryCategoryEdit(int id) =>
+      '$inventoryCategories/$id/edit';
 
   /// Path template for registering the category-detail route (unit policy,
   /// product count) with [GoRouter]. Screens must not build this string by
@@ -92,6 +94,25 @@ class Routes {
   static const String inventoryProductDetailPath = '$inventoryProducts/:id';
 
   static String inventoryProductDetail(int id) => '$inventoryProducts/$id';
+
+  static const String vendors = '/vendors';
+
+  /// New/edit vendor forms, as their own page — same reasoning as
+  /// [staffNew].
+  static const String vendorNew = '$vendors/new';
+
+  /// Path template for registering the edit-vendor route with [GoRouter].
+  /// Screens must not build this string by hand — use [vendorEdit].
+  static const String vendorEditPath = '$vendors/:id/edit';
+
+  static String vendorEdit(int id) => '$vendors/$id/edit';
+
+  /// Path template for registering the vendor-detail route (balance,
+  /// ledger, purchase history) with [GoRouter]. Screens must not build
+  /// this string by hand — use [vendorDetail].
+  static const String vendorDetailPath = '$vendors/:id';
+
+  static String vendorDetail(int id) => '$vendors/$id';
 
   //-----------Superadmin---------------
   static const String adminManagement = '/admin/management';

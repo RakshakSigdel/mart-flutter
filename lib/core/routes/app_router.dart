@@ -8,6 +8,7 @@ import '../../data/models/models_superadmin/admin_model.dart';
 import '../../data/models/models_user/inventory_categories_model.dart';
 import '../../data/models/models_user/inventory_units_model.dart';
 import '../../data/models/models_user/staff_model.dart';
+import '../../data/models/models_user/vendor_model.dart';
 import '../../presentation/feature_shared/auth/controller/auth_controller.dart';
 import '../../presentation/feature_shared/auth/screens/login_screen.dart';
 import '../../presentation/feature_shared/profile/screens/profile_screen.dart';
@@ -25,6 +26,9 @@ import '../../presentation/feature_user/inventory_units/screens/inventory_units_
 import '../../presentation/feature_user/shell/screens/admin_shell_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_form_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_management_screen.dart';
+import '../../presentation/feature_user/vendors/screens/vendor_detail_screen.dart';
+import '../../presentation/feature_user/vendors/screens/vendor_form_screen.dart';
+import '../../presentation/feature_user/vendors/screens/vendors_screen.dart';
 import '../../presentation/pages/not_found_screen.dart';
 import '../../presentation/pages/splash_screen.dart';
 import '../animations/app_page_route.dart';
@@ -61,7 +65,8 @@ String _landingRouteFor(AuthSessionModel session) =>
 bool _isAdminShellRoute(String location) =>
     location == Routes.dashboard ||
     location.startsWith(Routes.staff) ||
-    location.startsWith(Routes.inventory);
+    location.startsWith(Routes.inventory) ||
+    location.startsWith(Routes.vendors);
 
 /// Whether [location] is part of the superadmin area — the mart list plus
 /// any page pushed on top of it (e.g. the create-mart form).
@@ -217,6 +222,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.vendors,
+                name: 'vendors',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const VendorsScreen()),
+              ),
+            ],
+          ),
         ],
       ),
       // Hire/edit staff — full pages rather than branches of the shell
@@ -324,6 +339,37 @@ final routerProvider = Provider<GoRouter>((ref) {
           state,
           InventoryProductDetailScreen(
             productId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          ),
+        ),
+      ),
+      // Add/edit vendor — full pages for the same reason as the staff form
+      // routes above.
+      GoRoute(
+        path: Routes.vendorNew,
+        name: 'vendorNew',
+        pageBuilder: (context, state) =>
+            AppPageRoute.sharedAxisHorizontal(state, const VendorFormScreen()),
+      ),
+      GoRoute(
+        path: Routes.vendorEditPath,
+        name: 'vendorEdit',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          VendorFormScreen(
+            vendorId: int.tryParse(state.pathParameters['id'] ?? ''),
+            initialVendor: state.extra as VendorModel?,
+          ),
+        ),
+      ),
+      // Vendor detail — balance, ledger and purchase history, the one
+      // thing the plain list doesn't carry.
+      GoRoute(
+        path: Routes.vendorDetailPath,
+        name: 'vendorDetail',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          VendorDetailScreen(
+            vendorId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
           ),
         ),
       ),

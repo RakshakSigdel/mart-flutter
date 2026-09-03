@@ -32,8 +32,14 @@ class PageResponse<T> {
     Map<String, dynamic> json,
     T Function(Map<String, dynamic>) fromItem,
   ) {
-    return PageResponse(
-      content: (json['content'] as List<dynamic>?)
+    // `PageResponse<T>` explicit — the bare `PageResponse(...)` relies on
+    // Dart inferring `T` for this inner constructor call from the
+    // surrounding factory, which on web (DDC) can fall back to `Never`
+    // instead, so the parsed `content` list fails to assign into it at
+    // runtime ("List<X> is not a subtype of List<Never>").
+    return PageResponse<T>(
+      content:
+          (json['content'] as List<dynamic>?)
               ?.whereType<Map<String, dynamic>>()
               .map(fromItem)
               .toList() ??
@@ -47,11 +53,11 @@ class PageResponse<T> {
   }
 
   static PageResponse<T> empty<T>() => PageResponse<T>(
-        content: const [],
-        pageNumber: 0,
-        pageSize: 0,
-        totalElements: 0,
-        totalPages: 0,
-        last: true,
-      );
+    content: const [],
+    pageNumber: 0,
+    pageSize: 0,
+    totalElements: 0,
+    totalPages: 0,
+    last: true,
+  );
 }

@@ -64,6 +64,7 @@ const Map<String, String> _menuKeyRoutes = {
   'PRODUCTS': Routes.inventoryProducts,
   'STAFF': Routes.staff,
   'STAFF_DIRECTORY': Routes.staff,
+  'VENDOR': Routes.vendors,
   'ACCOUNT': Routes.profile,
 };
 
@@ -86,6 +87,7 @@ const Set<String> _shellBranchPaths = {
   Routes.inventoryCategories,
   Routes.inventoryProducts,
   Routes.staff,
+  Routes.vendors,
 };
 
 bool isSidebarShellBranch(String path) => _shellBranchPaths.contains(path);
@@ -101,6 +103,7 @@ const Map<String, IconData> _iconsByMenuKey = {
   'PRODUCTS': Icons.inventory_outlined,
   'STAFF': Icons.people_outline_rounded,
   'STAFF_DIRECTORY': Icons.people_outline_rounded,
+  'VENDOR': Icons.local_shipping_outlined,
   'ACCOUNT': Icons.account_circle_outlined,
 };
 
@@ -243,6 +246,18 @@ final List<SidebarSectionModel> fallbackSidebarSections = [
         path: Routes.staff,
         icon: 'UserCog',
         menuKey: 'STAFF',
+        subItems: [],
+      ),
+    ],
+  ),
+  const SidebarSectionModel(
+    title: 'Purchasing',
+    items: [
+      SidebarItemModel(
+        name: 'Vendors',
+        path: Routes.vendors,
+        icon: 'Truck',
+        menuKey: 'VENDOR',
         subItems: [],
       ),
     ],

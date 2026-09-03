@@ -54,22 +54,31 @@ class ApiEnvelope<T> {
   ) {
     final rawData = json['data'];
     final rawTimestamp = json['timestamp'];
-    return ApiEnvelope(
+    // `ApiEnvelope<T>` explicit — same reasoning as the fix in
+    // `PageResponse.fromJson`/`VendorSubPage.initial`: the bare
+    // `ApiEnvelope(...)` relies on inferring `T` for this constructor call
+    // from the enclosing factory's return type, which on web (DDC) can
+    // fall back to `Never` instead of the real type — and this envelope
+    // backs every single datasource call in the app, so a wrong binding
+    // here is a much wider blast radius than it looks.
+    return ApiEnvelope<T>(
       success: json['success'] as bool? ?? false,
       status: json['status'] as int?,
       message: json['message'] as String?,
       data: rawData == null ? null : fromData(rawData),
-      errors: (json['errors'] as List<dynamic>?)
+      errors:
+          (json['errors'] as List<dynamic>?)
               ?.whereType<Map<String, dynamic>>()
               .map(ApiFieldError.fromJson)
               .toList() ??
           const [],
-      timestamp: rawTimestamp is String ? DateTime.tryParse(rawTimestamp) : null,
+      timestamp: rawTimestamp is String
+          ? DateTime.tryParse(rawTimestamp)
+          : null,
     );
   }
 
   /// The first field error's message, if any — usually the most specific
   /// thing to show the user when [message] is generic ("Validation failed").
-  String? get firstErrorMessage =>
-      errors.isEmpty ? null : errors.first.message;
+  String? get firstErrorMessage => errors.isEmpty ? null : errors.first.message;
 }

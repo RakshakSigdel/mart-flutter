@@ -18,6 +18,7 @@ const Map<String, String> _fallbackTitles = {
   Routes.inventoryCategories: 'Categories',
   Routes.inventoryProducts: 'Products',
   Routes.staff: 'Staff',
+  Routes.vendors: 'Vendors',
 };
 
 /// Shared layout for every admin-area screen (dashboard, staff, …): a
