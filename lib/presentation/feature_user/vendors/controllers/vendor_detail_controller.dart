@@ -1,76 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/utils/paged_sub_list.dart';
 import '../../../../data/datasource/datasource_user/vendor_datasource.dart';
 import '../../../../data/models/models_user/vendor_model.dart';
 import '../../../../providers/providers_user/vendor_provider.dart';
 import '../../../feature_shared/auth/controller/auth_controller.dart';
-
-/// One page of a vendor's ledger or purchase-history sub-list — the detail
-/// screen owns two of these ([VendorDetailState.ledger]/`.history`),
-/// paged independently of each other and of the vendor record itself.
-class VendorSubPage<T> {
-  const VendorSubPage({
-    required this.items,
-    required this.isLoading,
-    required this.error,
-    required this.pageNumber,
-    required this.totalPages,
-    required this.totalElements,
-    required this.isLast,
-  });
-
-  // `VendorSubPage<T>` explicit — same reasoning as the fix in
-  // `PageResponse.fromJson`: the bare `VendorSubPage(...)` here relies on
-  // Dart inferring `T` for this constructor call from the enclosing
-  // factory's return type, which on web (DDC) can fall back to `Never`
-  // instead. Since this runs immediately on `build()` — before any real
-  // data arrives — a wrong binding here poisons `T` for every `copyWith`
-  // call made against this object for the rest of its life, which is
-  // exactly what was causing "List<X> is not a subtype of List<Never>"
-  // the moment a real page of results tried to assign into `items`.
-  factory VendorSubPage.initial() => VendorSubPage<T>(
-    items: const [],
-    isLoading: true,
-    error: null,
-    pageNumber: 1,
-    totalPages: 0,
-    totalElements: 0,
-    isLast: true,
-  );
-
-  final List<T> items;
-  final bool isLoading;
-  final String? error;
-  final int pageNumber;
-  final int totalPages;
-  final int totalElements;
-  final bool isLast;
-
-  bool get isEmpty => !isLoading && error == null && items.isEmpty;
-  bool get hasNextPage => !isLast;
-  bool get hasPreviousPage => pageNumber > 1;
-
-  VendorSubPage<T> copyWith({
-    List<T>? items,
-    bool? isLoading,
-    String? error,
-    int? pageNumber,
-    int? totalPages,
-    int? totalElements,
-    bool? isLast,
-  }) {
-    return VendorSubPage<T>(
-      items: items ?? this.items,
-      isLoading: isLoading ?? this.isLoading,
-      error: error,
-      pageNumber: pageNumber ?? this.pageNumber,
-      totalPages: totalPages ?? this.totalPages,
-      totalElements: totalElements ?? this.totalElements,
-      isLast: isLast ?? this.isLast,
-    );
-  }
-}
 
 /// Screen-level state for one vendor's detail page: the record itself, its
 /// running balance, and the ledger/history sub-lists — everything the
@@ -95,8 +30,8 @@ class VendorDetailState {
     vendor: null,
     balance: null,
     isBalanceLoading: true,
-    ledger: VendorSubPage<VendorLedgerEntryModel>.initial(),
-    history: VendorSubPage<VendorHistoryModel>.initial(),
+    ledger: PagedSubList<VendorLedgerEntryModel>.initial(),
+    history: PagedSubList<VendorHistoryModel>.initial(),
     isSubmitting: false,
   );
 
@@ -110,8 +45,8 @@ class VendorDetailState {
   final VendorBalanceModel? balance;
   final bool isBalanceLoading;
 
-  final VendorSubPage<VendorLedgerEntryModel> ledger;
-  final VendorSubPage<VendorHistoryModel> history;
+  final PagedSubList<VendorLedgerEntryModel> ledger;
+  final PagedSubList<VendorHistoryModel> history;
 
   /// True while a settlement or manual ledger entry is being posted —
   /// disables the balance card's own action buttons/dialogs.
@@ -123,8 +58,8 @@ class VendorDetailState {
     VendorModel? vendor,
     VendorBalanceModel? balance,
     bool? isBalanceLoading,
-    VendorSubPage<VendorLedgerEntryModel>? ledger,
-    VendorSubPage<VendorHistoryModel>? history,
+    PagedSubList<VendorLedgerEntryModel>? ledger,
+    PagedSubList<VendorHistoryModel>? history,
     bool? isSubmitting,
   }) {
     return VendorDetailState(

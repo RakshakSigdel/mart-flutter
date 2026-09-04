@@ -55,7 +55,7 @@ class ApiEnvelope<T> {
     final rawData = json['data'];
     final rawTimestamp = json['timestamp'];
     // `ApiEnvelope<T>` explicit — same reasoning as the fix in
-    // `PageResponse.fromJson`/`VendorSubPage.initial`: the bare
+    // `PageResponse.fromJson`/`PagedSubList.initial`: the bare
     // `ApiEnvelope(...)` relies on inferring `T` for this constructor call
     // from the enclosing factory's return type, which on web (DDC) can
     // fall back to `Never` instead of the real type — and this envelope

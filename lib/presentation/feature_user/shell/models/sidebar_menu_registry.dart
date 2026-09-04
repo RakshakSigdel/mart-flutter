@@ -65,6 +65,28 @@ const Map<String, String> _menuKeyRoutes = {
   'STAFF': Routes.staff,
   'STAFF_DIRECTORY': Routes.staff,
   'VENDOR': Routes.vendors,
+  // The example response reuses 'INVENTORY' for the Stock item itself
+  // (distinct from PRODUCTS/CATEGORIES/UNITS above) — all three of its
+  // sub-items resolve here too, so the group collapses to one link.
+  'INVENTORY': Routes.stock,
+  'STOCK_LEVELS': Routes.stock,
+  'STOCK_ADJUSTMENTS': Routes.stock,
+  'STOCK_WRITE_OFFS': Routes.stock,
+  // "Goods receipts" isn't a distinct step in this build — recording a
+  // purchase already receives the goods, so both keys land on the same
+  // screen and the group collapses to one link.
+  'PURCHASE': Routes.purchases,
+  'PURCHASE_ORDERS': Routes.purchases,
+  'GOODS_RECEIPTS': Routes.purchases,
+  // "Point of sale" and "Sales" both land on the sales list, which is
+  // also where ringing up a new sale lives (the "New sale" button) —
+  // there's no separate quick-scan terminal screen in this build.
+  // "Invoices" is the same bill by another name here, so it resolves the
+  // same way; "Returns" genuinely isn't built yet and stays unresolved.
+  'POS': Routes.sales,
+  'SALES': Routes.sales,
+  'ORDERS': Routes.sales,
+  'INVOICES': Routes.sales,
   'ACCOUNT': Routes.profile,
 };
 
@@ -88,6 +110,9 @@ const Set<String> _shellBranchPaths = {
   Routes.inventoryProducts,
   Routes.staff,
   Routes.vendors,
+  Routes.stock,
+  Routes.purchases,
+  Routes.sales,
 };
 
 bool isSidebarShellBranch(String path) => _shellBranchPaths.contains(path);
@@ -104,6 +129,17 @@ const Map<String, IconData> _iconsByMenuKey = {
   'STAFF': Icons.people_outline_rounded,
   'STAFF_DIRECTORY': Icons.people_outline_rounded,
   'VENDOR': Icons.local_shipping_outlined,
+  'INVENTORY': Icons.inventory_outlined,
+  'STOCK_LEVELS': Icons.inventory_outlined,
+  'STOCK_ADJUSTMENTS': Icons.tune_rounded,
+  'STOCK_WRITE_OFFS': Icons.remove_circle_outline_rounded,
+  'PURCHASE': Icons.shopping_cart_outlined,
+  'PURCHASE_ORDERS': Icons.shopping_cart_outlined,
+  'GOODS_RECEIPTS': Icons.local_shipping_outlined,
+  'POS': Icons.point_of_sale_outlined,
+  'SALES': Icons.receipt_long_outlined,
+  'ORDERS': Icons.receipt_long_outlined,
+  'INVOICES': Icons.receipt_long_outlined,
   'ACCOUNT': Icons.account_circle_outlined,
 };
 
@@ -145,9 +181,11 @@ IconData sidebarIconFor(String iconName, {String? menuKey}) {
 ///   renders, pointed at [Routes.notFound] instead of a dead path — see
 ///   that map's doc comment.
 /// - An item with sub-items renders as a [ResolvedSidebarGroup] — unless
-///   there's exactly one and it lands on the same place the item itself
-///   would (a real route, or both unresolved), in which case it collapses
-///   to a single [ResolvedSidebarLink] rather than a one-child group.
+///   every one of them (however many) resolves to the very same path,
+///   and that path is also where the item itself would land (or the item
+///   itself is unresolved), in which case it collapses to a single
+///   [ResolvedSidebarLink] rather than a group whose children all go to
+///   the same place.
 List<ResolvedSidebarSection> resolveSidebarSections(
   List<SidebarSectionModel> sections,
 ) {
@@ -179,12 +217,13 @@ ResolvedSidebarEntry _resolveItem(SidebarItemModel item) {
       ),
   ];
 
-  if (children.length == 1 &&
-      (ownRawPath == null || ownRawPath == children.first.path)) {
+  final distinctChildPaths = children.map((c) => c.path).toSet();
+  if (distinctChildPaths.length == 1 &&
+      (ownRawPath == null || ownRawPath == distinctChildPaths.first)) {
     return ResolvedSidebarLink(
       name: item.name,
       icon: icon,
-      path: children.first.path,
+      path: distinctChildPaths.first,
     );
   }
 
@@ -239,6 +278,18 @@ final List<SidebarSectionModel> fallbackSidebarSections = [
     ],
   ),
   const SidebarSectionModel(
+    title: 'Stock',
+    items: [
+      SidebarItemModel(
+        name: 'Stock',
+        path: Routes.stock,
+        icon: 'Boxes',
+        menuKey: 'INVENTORY',
+        subItems: [],
+      ),
+    ],
+  ),
+  const SidebarSectionModel(
     title: 'People',
     items: [
       SidebarItemModel(
@@ -251,8 +302,27 @@ final List<SidebarSectionModel> fallbackSidebarSections = [
     ],
   ),
   const SidebarSectionModel(
+    title: 'Sales',
+    items: [
+      SidebarItemModel(
+        name: 'Sales',
+        path: Routes.sales,
+        icon: 'ReceiptText',
+        menuKey: 'SALES',
+        subItems: [],
+      ),
+    ],
+  ),
+  const SidebarSectionModel(
     title: 'Purchasing',
     items: [
+      SidebarItemModel(
+        name: 'Purchases',
+        path: Routes.purchases,
+        icon: 'ShoppingCart',
+        menuKey: 'PURCHASE',
+        subItems: [],
+      ),
       SidebarItemModel(
         name: 'Vendors',
         path: Routes.vendors,

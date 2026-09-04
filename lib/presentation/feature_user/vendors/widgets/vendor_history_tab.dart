@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/core.dart';
 import '../../../../data/models/models_user/vendor_model.dart';
-import '../controllers/vendor_detail_controller.dart';
 
 const _months = [
   'Jan',
@@ -36,7 +35,7 @@ class VendorHistoryTab extends StatelessWidget {
     required this.onNext,
   });
 
-  final VendorSubPage<VendorHistoryModel> history;
+  final PagedSubList<VendorHistoryModel> history;
   final VoidCallback onRetry;
   final VoidCallback onPrevious;
   final VoidCallback onNext;

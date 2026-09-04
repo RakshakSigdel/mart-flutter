@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/core.dart';
 import '../../../../data/models/models_user/vendor_model.dart';
-import '../controllers/vendor_detail_controller.dart';
 import 'vendor_badges.dart';
 
 const _months = [
@@ -37,7 +36,7 @@ class VendorLedgerTab extends StatelessWidget {
     required this.onNext,
   });
 
-  final VendorSubPage<VendorLedgerEntryModel> ledger;
+  final PagedSubList<VendorLedgerEntryModel> ledger;
   final VoidCallback onRetry;
   final VoidCallback onPrevious;
   final VoidCallback onNext;

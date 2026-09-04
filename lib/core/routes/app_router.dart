@@ -23,9 +23,17 @@ import '../../presentation/feature_user/inventory_products/screens/inventory_pro
 import '../../presentation/feature_user/inventory_products/screens/inventory_products_screen.dart';
 import '../../presentation/feature_user/inventory_units/screens/inventory_unit_form_screen.dart';
 import '../../presentation/feature_user/inventory_units/screens/inventory_units_screen.dart';
+import '../../presentation/feature_user/purchases/screens/purchase_detail_screen.dart';
+import '../../presentation/feature_user/purchases/screens/purchase_form_screen.dart';
+import '../../presentation/feature_user/purchases/screens/purchases_screen.dart';
+import '../../presentation/feature_user/sales/screens/sale_detail_screen.dart';
+import '../../presentation/feature_user/sales/screens/sale_form_screen.dart';
+import '../../presentation/feature_user/sales/screens/sales_screen.dart';
 import '../../presentation/feature_user/shell/screens/admin_shell_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_form_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_management_screen.dart';
+import '../../presentation/feature_user/stock/screens/stock_detail_screen.dart';
+import '../../presentation/feature_user/stock/screens/stock_screen.dart';
 import '../../presentation/feature_user/vendors/screens/vendor_detail_screen.dart';
 import '../../presentation/feature_user/vendors/screens/vendor_form_screen.dart';
 import '../../presentation/feature_user/vendors/screens/vendors_screen.dart';
@@ -66,7 +74,10 @@ bool _isAdminShellRoute(String location) =>
     location == Routes.dashboard ||
     location.startsWith(Routes.staff) ||
     location.startsWith(Routes.inventory) ||
-    location.startsWith(Routes.vendors);
+    location.startsWith(Routes.vendors) ||
+    location.startsWith(Routes.stock) ||
+    location.startsWith(Routes.purchases) ||
+    location.startsWith(Routes.sales);
 
 /// Whether [location] is part of the superadmin area — the mart list plus
 /// any page pushed on top of it (e.g. the create-mart form).
@@ -232,6 +243,36 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.stock,
+                name: 'stock',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const StockScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.purchases,
+                name: 'purchases',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const PurchasesScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.sales,
+                name: 'sales',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const SalesScreen()),
+              ),
+            ],
+          ),
         ],
       ),
       // Hire/edit staff — full pages rather than branches of the shell
@@ -370,6 +411,64 @@ final routerProvider = Provider<GoRouter>((ref) {
           state,
           VendorDetailScreen(
             vendorId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          ),
+        ),
+      ),
+      // Stock detail — one product's level and full movement ledger, the
+      // one thing the plain list doesn't carry. No add/edit routes —
+      // levels are derived from purchases/sales/adjustments, never
+      // created directly.
+      GoRoute(
+        path: Routes.stockProductDetailPath,
+        name: 'stockProductDetail',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          StockDetailScreen(
+            productId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          ),
+        ),
+      ),
+      // Record a purchase — full page for the same reason as the staff
+      // form routes above. No edit route — a recorded purchase is
+      // immutable.
+      GoRoute(
+        path: Routes.purchaseNew,
+        name: 'purchaseNew',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          const PurchaseFormScreen(),
+        ),
+      ),
+      // Purchase detail — vendor details and every line item, the one
+      // thing the plain list doesn't carry.
+      GoRoute(
+        path: Routes.purchaseDetailPath,
+        name: 'purchaseDetail',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          PurchaseDetailScreen(
+            purchaseId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          ),
+        ),
+      ),
+      // Ring up a sale — full page for the same reason as the staff form
+      // routes above. No edit route — a rung-up bill is immutable apart
+      // from taking a payment, which lives on the detail screen.
+      GoRoute(
+        path: Routes.saleNew,
+        name: 'saleNew',
+        pageBuilder: (context, state) =>
+            AppPageRoute.sharedAxisHorizontal(state, const SaleFormScreen()),
+      ),
+      // Sale detail — customer details, every line item, and the "take
+      // payment" action, the things the plain list doesn't carry.
+      GoRoute(
+        path: Routes.saleDetailPath,
+        name: 'saleDetail',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          SaleDetailScreen(
+            saleId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
           ),
         ),
       ),

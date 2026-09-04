@@ -28,11 +28,14 @@ export 'routes/route_constants.dart';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 export 'utils/debouncer.dart';
+export 'utils/paged_sub_list.dart';
+export 'utils/text_format.dart';
 
 // ─── Design system widgets ────────────────────────────────────────────────────
 export 'widgets/app_badge.dart';
 export 'widgets/app_button.dart';
 export 'widgets/app_card.dart';
+export 'widgets/app_date_field.dart';
 export 'widgets/app_dropdown_field.dart';
 export 'widgets/app_empty_state.dart';
 export 'widgets/app_form_error.dart';
