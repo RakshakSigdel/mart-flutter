@@ -65,6 +65,9 @@ const Map<String, String> _menuKeyRoutes = {
   'STAFF': Routes.staff,
   'STAFF_DIRECTORY': Routes.staff,
   'VENDOR': Routes.vendors,
+  'VENDORS': Routes.vendors,
+  'CUSTOMER': Routes.customers,
+  'CUSTOMERS': Routes.customers,
   // The example response reuses 'INVENTORY' for the Stock item itself
   // (distinct from PRODUCTS/CATEGORIES/UNITS above) — all three of its
   // sub-items resolve here too, so the group collapses to one link.
@@ -76,6 +79,7 @@ const Map<String, String> _menuKeyRoutes = {
   // purchase already receives the goods, so both keys land on the same
   // screen and the group collapses to one link.
   'PURCHASE': Routes.purchases,
+  'PURCHASES': Routes.purchases,
   'PURCHASE_ORDERS': Routes.purchases,
   'GOODS_RECEIPTS': Routes.purchases,
   // "Point of sale" and "Sales" both land on the sales list, which is
@@ -110,6 +114,7 @@ const Set<String> _shellBranchPaths = {
   Routes.inventoryProducts,
   Routes.staff,
   Routes.vendors,
+  Routes.customers,
   Routes.stock,
   Routes.purchases,
   Routes.sales,
@@ -129,6 +134,8 @@ const Map<String, IconData> _iconsByMenuKey = {
   'STAFF': Icons.people_outline_rounded,
   'STAFF_DIRECTORY': Icons.people_outline_rounded,
   'VENDOR': Icons.local_shipping_outlined,
+  'CUSTOMER': Icons.person_outlined,
+  'CUSTOMERS': Icons.people_outlined,
   'INVENTORY': Icons.inventory_outlined,
   'STOCK_LEVELS': Icons.inventory_outlined,
   'STOCK_ADJUSTMENTS': Icons.tune_rounded,
@@ -208,14 +215,23 @@ ResolvedSidebarEntry _resolveItem(SidebarItemModel item) {
     return ResolvedSidebarLink(name: item.name, icon: icon, path: ownPath);
   }
 
-  final children = <ResolvedSidebarLink>[
-    for (final sub in item.subItems)
-      ResolvedSidebarLink(
-        name: sub.name,
-        icon: null,
-        path: _menuKeyRoutes[sub.menuKey] ?? Routes.notFound,
-      ),
-  ];
+  final children = <ResolvedSidebarLink>[];
+  final seenPaths = <String>{};
+  
+  for (final sub in item.subItems) {
+    final path = _menuKeyRoutes[sub.menuKey] ?? Routes.notFound;
+    // Don't deduplicate notFound paths, let them all show up so we know what's missing.
+    // Do deduplicate everything else so we don't get 4 links pointing to /sales.
+    if (path != Routes.notFound && seenPaths.contains(path)) {
+      continue;
+    }
+    seenPaths.add(path);
+    children.add(ResolvedSidebarLink(
+      name: sub.name,
+      icon: null,
+      path: path,
+    ));
+  }
 
   final distinctChildPaths = children.map((c) => c.path).toSet();
   if (distinctChildPaths.length == 1 &&

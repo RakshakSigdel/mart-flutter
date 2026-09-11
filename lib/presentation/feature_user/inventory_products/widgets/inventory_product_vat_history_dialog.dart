@@ -7,16 +7,7 @@ import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
 import '../controllers/inventory_product_detail_controller.dart';
 
-const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
 
-String _formatDate(DateTime? date) {
-  if (date == null) return '—';
-  final local = date.toLocal();
-  return '${local.day} ${_months[local.month - 1]} ${local.year}';
-}
 
 /// A purchase unit's VAT history — fetched on demand (`GET
 /// .../purchase-units/{id}`, the only endpoint that carries it), with an
@@ -43,8 +34,6 @@ class _InventoryProductVatHistoryDialogState
 
   bool _showOpenRateForm = false;
   final _rateController = TextEditingController();
-  final _effectiveFromText = TextEditingController();
-  DateTime? _effectiveFrom;
   bool _submitting = false;
   String? _errorMessage;
 
@@ -57,35 +46,13 @@ class _InventoryProductVatHistoryDialogState
   @override
   void dispose() {
     _rateController.dispose();
-    _effectiveFromText.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickEffectiveFrom() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _effectiveFrom ?? now,
-      firstDate: DateTime(now.year - 5),
-      lastDate: DateTime(now.year + 5),
-    );
-    if (picked != null) {
-      setState(() {
-        _effectiveFrom = picked;
-        _effectiveFromText.text = _formatDate(picked);
-      });
-    }
   }
 
   Future<void> _openNewRate() async {
     final rate = double.tryParse(_rateController.text.trim());
     if (rate == null || rate < 0) {
       setState(() => _errorMessage = 'Enter a valid rate');
-      return;
-    }
-    final effectiveFrom = _effectiveFrom;
-    if (effectiveFrom == null) {
-      setState(() => _errorMessage = 'Effective-from date is required');
       return;
     }
 
@@ -99,15 +66,13 @@ class _InventoryProductVatHistoryDialogState
           .read(inventoryProductDetailControllerProvider(widget.productId).notifier)
           .openVatRate(
             widget.purchaseUnitId,
-            OpenVatRateRequest(rate: rate, effectiveFrom: effectiveFrom),
+            OpenVatRateRequest(rate: rate),
           );
       if (!mounted) return;
       setState(() {
         _future = Future.value(detail);
         _showOpenRateForm = false;
         _rateController.clear();
-        _effectiveFromText.clear();
-        _effectiveFrom = null;
       });
       AppSnackBar.success(context, 'New VAT rate opened.');
     } on ApiException catch (e) {
@@ -161,12 +126,6 @@ class _InventoryProductVatHistoryDialogState
                           style: AppTypography.bodySmall,
                         ),
                       ),
-                      Text(
-                        rate.effectiveTo == null
-                            ? '${_formatDate(rate.effectiveFrom)} · current'
-                            : '${_formatDate(rate.effectiveFrom)} – ${_formatDate(rate.effectiveTo)}',
-                        style: AppTypography.caption,
-                      ),
                     ],
                   ),
                 ),
@@ -178,20 +137,6 @@ class _InventoryProductVatHistoryDialogState
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
                 enabled: !_submitting,
-              ),
-              const SizedBox(height: AppSpacing.smMd),
-              GestureDetector(
-                onTap: _submitting ? null : _pickEffectiveFrom,
-                child: AbsorbPointer(
-                  child: AppTextField(
-                    controller: _effectiveFromText,
-                    label: 'Effective from',
-                    hint: 'Select a date',
-                    readOnly: true,
-                    enabled: !_submitting,
-                    suffixIcon: Icons.calendar_today_outlined,
-                  ),
-                ),
               ),
               AppFormError(message: _errorMessage),
               const SizedBox(height: AppSpacing.smMd),

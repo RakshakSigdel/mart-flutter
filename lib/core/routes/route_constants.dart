@@ -114,6 +114,18 @@ class Routes {
 
   static String vendorDetail(int id) => '$vendors/$id';
 
+  static const String customers = '/customers';
+
+  static const String customerNew = '$customers/new';
+
+  static const String customerEditPath = '$customers/:id/edit';
+
+  static String customerEdit(int id) => '$customers/$id/edit';
+
+  static const String customerDetailPath = '$customers/:id';
+
+  static String customerDetail(int id) => '$customers/$id';
+
   static const String stock = '/stock';
 
   /// Path template for registering the stock product-detail route (level,

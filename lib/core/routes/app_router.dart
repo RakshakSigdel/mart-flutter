@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/models/models_shared/auth_session_model.dart';
 import '../../data/models/models_superadmin/admin_model.dart';
+import '../../data/models/models_user/customer_model.dart';
 import '../../data/models/models_user/inventory_categories_model.dart';
 import '../../data/models/models_user/inventory_units_model.dart';
 import '../../data/models/models_user/staff_model.dart';
@@ -14,6 +15,9 @@ import '../../presentation/feature_shared/auth/screens/login_screen.dart';
 import '../../presentation/feature_shared/profile/screens/profile_screen.dart';
 import '../../presentation/feature_superadmin/admin_management/screens/admin_form_screen.dart';
 import '../../presentation/feature_superadmin/admin_management/screens/admin_management_screen.dart';
+import '../../presentation/feature_user/customers/screens/customer_detail_screen.dart';
+import '../../presentation/feature_user/customers/screens/customer_form_screen.dart';
+import '../../presentation/feature_user/customers/screens/customers_screen.dart';
 import '../../presentation/feature_user/dashboard/screen/dashboard_screen.dart';
 import '../../presentation/feature_user/inventory_categories/screens/inventory_categories_screen.dart';
 import '../../presentation/feature_user/inventory_categories/screens/inventory_category_detail_screen.dart';
@@ -75,6 +79,7 @@ bool _isAdminShellRoute(String location) =>
     location.startsWith(Routes.staff) ||
     location.startsWith(Routes.inventory) ||
     location.startsWith(Routes.vendors) ||
+    location.startsWith(Routes.customers) ||
     location.startsWith(Routes.stock) ||
     location.startsWith(Routes.purchases) ||
     location.startsWith(Routes.sales);
@@ -246,6 +251,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: Routes.customers,
+                name: 'customers',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const CustomersScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: Routes.stock,
                 name: 'stock',
                 pageBuilder: (context, state) =>
@@ -411,6 +426,37 @@ final routerProvider = Provider<GoRouter>((ref) {
           state,
           VendorDetailScreen(
             vendorId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          ),
+        ),
+      ),
+      // Add/edit customer — full pages for the same reason as the staff form
+      // routes above.
+      GoRoute(
+        path: Routes.customerNew,
+        name: 'customerNew',
+        pageBuilder: (context, state) =>
+            AppPageRoute.sharedAxisHorizontal(state, const CustomerFormScreen()),
+      ),
+      GoRoute(
+        path: Routes.customerEditPath,
+        name: 'customerEdit',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          CustomerFormScreen(
+            customerId: int.tryParse(state.pathParameters['id'] ?? ''),
+            initialCustomer: state.extra as CustomerModel?,
+          ),
+        ),
+      ),
+      // Customer detail — balance, credit limit and transaction history, the
+      // one thing the plain list doesn't carry.
+      GoRoute(
+        path: Routes.customerDetailPath,
+        name: 'customerDetail',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          CustomerDetailScreen(
+            customerId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
           ),
         ),
       ),

@@ -103,6 +103,14 @@ class SaleDetailController extends Notifier<SaleDetailState> {
     }
   }
 
+  /// Fetches the A4 invoice PDF as raw bytes; throws [ApiException] on error.
+  Future<List<int>> downloadInvoice() =>
+      _dataSource.downloadInvoice(saleId);
+
+  /// Fetches the till-receipt PDF as raw bytes; throws [ApiException] on error.
+  Future<List<int>> downloadReceipt() =>
+      _dataSource.downloadReceipt(saleId);
+
   /// A 401 means the session is dead — sign out everywhere rather than
   /// leaving this screen the only place that noticed. `routerProvider`'s
   /// redirect reacts to the resulting state change and sends the user back

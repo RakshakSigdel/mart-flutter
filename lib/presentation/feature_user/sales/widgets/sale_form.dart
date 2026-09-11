@@ -1,11 +1,13 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/core.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_shared/commerce_model.dart';
+import '../../../../data/models/models_user/customer_model.dart';
 import '../../../../data/models/models_user/sale_model.dart';
+import '../../../../providers/providers_user/customer_provider.dart';
 import '../controllers/sales_controller.dart';
 import 'sale_line_item_row.dart';
 
@@ -31,6 +33,10 @@ class _SaleFormState extends ConsumerState<SaleForm> {
 
   PaymentMethod _paymentMethod = PaymentMethod.cash;
   TaxScheme _taxScheme = TaxScheme.vat;
+
+  /// The customer selected from the existing-customer dropdown.
+  /// Null when using freehand entry.
+  CustomerModel? _selectedCustomer;
 
   int _nextRowId = 0;
   final Map<int, SaleLineItemData> _rows = {};
@@ -70,6 +76,30 @@ class _SaleFormState extends ConsumerState<SaleForm> {
     setState(() => _rows.remove(rowId));
   }
 
+  // ── Customer helpers ────────────────────────────────────────────────────────
+
+  void _onCustomerSelected(CustomerModel? customer) {
+    setState(() {
+      _selectedCustomer = customer;
+      if (customer != null) {
+        _customerNameController.text = customer.name;
+        _customerPhoneController.text = customer.phone ?? '';
+        _customerPanController.text = customer.panNumber ?? '';
+      }
+    });
+  }
+
+  void _clearCustomer() {
+    setState(() {
+      _selectedCustomer = null;
+      _customerNameController.clear();
+      _customerPhoneController.clear();
+      _customerPanController.clear();
+    });
+  }
+
+  // ── Totals ──────────────────────────────────────────────────────────────────
+
   double get _itemsTotal =>
       _rows.values.fold(0, (sum, row) => sum + row.lineTotal);
 
@@ -86,6 +116,8 @@ class _SaleFormState extends ConsumerState<SaleForm> {
     final change = tendered - _estimatedNetTotal;
     return change < 0 ? 0 : change;
   }
+
+  // ── Submit ──────────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -144,6 +176,8 @@ class _SaleFormState extends ConsumerState<SaleForm> {
     }
   }
 
+  // ── Build ───────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final change = _estimatedChange;
@@ -153,6 +187,7 @@ class _SaleFormState extends ConsumerState<SaleForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Payment & tax ─────────────────────────────────────────────────
           Row(
             children: [
               Expanded(
@@ -193,6 +228,8 @@ class _SaleFormState extends ConsumerState<SaleForm> {
             ],
           ),
           const SizedBox(height: AppSpacing.smMd),
+
+          // ── Tendered / discount ───────────────────────────────────────────
           Row(
             children: [
               if (_paymentMethod == PaymentMethod.cash) ...[
@@ -231,12 +268,58 @@ class _SaleFormState extends ConsumerState<SaleForm> {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('Customer (optional)', style: AppTypography.subtitle),
+
+          // ── Customer section ──────────────────────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: Text('Customer (optional)', style: AppTypography.subtitle),
+              ),
+              if (_selectedCustomer != null)
+                TextButton.icon(
+                  onPressed: _submitting ? null : _clearCustomer,
+                  icon: const Icon(Icons.close, size: 16),
+                  label: const Text('Clear'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textMuted,
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+            ],
+          ),
           const SizedBox(height: AppSpacing.smMd),
+
+          // Existing-customer searchable picker
+          AppSearchableDropdownField<CustomerModel>(
+            label: 'Select existing customer',
+            selectedItem: _selectedCustomer,
+            hint: 'Search by name or phone...',
+            searchHint: 'Type to search customers...',
+            asyncItems: (filter) async {
+              final ds = ref.read(customerRemoteDataSourceProvider);
+              final page = await ds.list(
+                search: filter.isEmpty ? null : filter,
+                size: 30,
+              );
+              return page.content;
+            },
+            itemLabel: (c) =>
+                c.phone != null ? '${c.name} (${c.phone})' : c.name,
+            onChanged: _submitting ? (_) {} : _onCustomerSelected,
+          ),
+          const SizedBox(height: AppSpacing.smMd),
+
+          // Manual fields — pre-filled from picker, still editable
           AppTextField(
             controller: _customerNameController,
             label: 'Name',
             enabled: !_submitting,
+            onChanged: (_) {
+              if (_selectedCustomer != null) {
+                setState(() => _selectedCustomer = null);
+              }
+            },
           ),
           const SizedBox(height: AppSpacing.smMd),
           Row(
@@ -247,6 +330,11 @@ class _SaleFormState extends ConsumerState<SaleForm> {
                   label: 'Phone',
                   keyboardType: TextInputType.phone,
                   enabled: !_submitting,
+                  onChanged: (_) {
+                    if (_selectedCustomer != null) {
+                      setState(() => _selectedCustomer = null);
+                    }
+                  },
                 ),
               ),
               const SizedBox(width: AppSpacing.smMd),
@@ -255,6 +343,11 @@ class _SaleFormState extends ConsumerState<SaleForm> {
                   controller: _customerPanController,
                   label: 'PAN',
                   enabled: !_submitting,
+                  onChanged: (_) {
+                    if (_selectedCustomer != null) {
+                      setState(() => _selectedCustomer = null);
+                    }
+                  },
                 ),
               ),
             ],
@@ -266,6 +359,8 @@ class _SaleFormState extends ConsumerState<SaleForm> {
             enabled: !_submitting,
           ),
           const SizedBox(height: AppSpacing.lg),
+
+          // ── Items ─────────────────────────────────────────────────────────
           Row(
             children: [
               Expanded(child: Text('Items', style: AppTypography.subtitle)),
@@ -287,6 +382,8 @@ class _SaleFormState extends ConsumerState<SaleForm> {
             ),
             const SizedBox(height: AppSpacing.smMd),
           ],
+
+          // ── Totals preview ────────────────────────────────────────────────
           const Divider(height: AppSpacing.lg),
           Row(
             children: [

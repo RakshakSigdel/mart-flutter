@@ -50,10 +50,7 @@ class _InventoryProductPurchaseUnitDialogState
     text: widget.existing == null ? '' : formatMoney(widget.existing!.purchasePrice),
   );
   late final _vatRate = TextEditingController();
-  late final _effectiveFromText = TextEditingController();
-
   InventoryUnitModel? _unit;
-  DateTime? _effectiveFrom;
   bool _active = true;
   bool _isDefault = false;
   bool _submitting = false;
@@ -71,28 +68,8 @@ class _InventoryProductPurchaseUnitDialogState
     _packQuantity.dispose();
     _purchasePrice.dispose();
     _vatRate.dispose();
-    _effectiveFromText.dispose();
     super.dispose();
   }
-
-  Future<void> _pickEffectiveFrom() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _effectiveFrom ?? now,
-      firstDate: DateTime(now.year - 5),
-      lastDate: DateTime(now.year + 5),
-    );
-    if (picked != null) {
-      setState(() {
-        _effectiveFrom = picked;
-        _effectiveFromText.text = _formatDate(picked);
-      });
-    }
-  }
-
-  static String _formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -116,10 +93,6 @@ class _InventoryProductPurchaseUnitDialogState
       final vatRate = double.tryParse(_vatRate.text.trim());
       if (vatRate == null || vatRate < 0) {
         setState(() => _errorMessage = 'VAT rate must be a valid number');
-        return;
-      }
-      if (_effectiveFrom == null) {
-        setState(() => _errorMessage = 'VAT effective-from date is required');
         return;
       }
     }
@@ -153,7 +126,6 @@ class _InventoryProductPurchaseUnitDialogState
             isDefault: _isDefault,
             vat: OpenVatRateRequest(
               rate: double.parse(_vatRate.text.trim()),
-              effectiveFrom: _effectiveFrom!,
             ),
           ),
         );
@@ -222,20 +194,6 @@ class _InventoryProductPurchaseUnitDialogState
                 final parsed = double.tryParse((v ?? '').trim());
                 return (parsed == null || parsed < 0) ? 'Enter a valid rate' : null;
               },
-            ),
-            const SizedBox(height: AppSpacing.smMd),
-            GestureDetector(
-              onTap: _submitting ? null : _pickEffectiveFrom,
-              child: AbsorbPointer(
-                child: AppTextField(
-                  controller: _effectiveFromText,
-                  label: 'VAT effective from',
-                  hint: 'Select a date',
-                  readOnly: true,
-                  enabled: !_submitting,
-                  suffixIcon: Icons.calendar_today_outlined,
-                ),
-              ),
             ),
           ],
           SwitchListTile.adaptive(

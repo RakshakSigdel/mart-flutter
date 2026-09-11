@@ -130,6 +130,33 @@ class SaleRemoteDataSource {
     }
   }
 
+  /// Downloads the A4 PDF invoice for [id] as raw bytes.
+  /// The caller is responsible for opening/printing the bytes.
+  Future<List<int>> downloadInvoice(int id) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        '/sales/$id/invoice',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return response.data ?? [];
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Downloads the till-receipt PDF for [id] as raw bytes.
+  Future<List<int>> downloadReceipt(int id) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        '/sales/$id/invoice/receipt',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return response.data ?? [];
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// Parses the envelope and turns a logical failure (HTTP 200 but
   /// `success: false`) into the same [ApiException] a bad HTTP status would
   /// produce, so callers only ever handle one kind of error.

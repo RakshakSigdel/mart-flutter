@@ -13,25 +13,12 @@ bool _parseDefault(Map<String, dynamic> json) {
   return json['default'] as bool? ?? false;
 }
 
-/// `2026-09-01` -> [DateTime] — VAT rates use date-only fields, unlike the
-/// timestamp fields (`createdAt`, etc.) elsewhere in this model.
-DateTime? _parseDateOnly(Object? value) => _parseDate(value);
+
 
 /// A price/rate formatted to two decimal places for display — every
 /// currency-shaped field on this model (`sellingPrice`, `purchasePrice`,
 /// `mrp`) goes through this so they read consistently.
 String formatMoney(double? value) => value == null ? '—' : value.toStringAsFixed(2);
-
-/// A [DateTime] formatted as the date-only string the backend expects for
-/// `effectiveFrom` — see `staffDateOnly` for why a plain
-/// `.toIso8601String()` would be wrong here (it carries a time component
-/// this field doesn't take).
-String productDateOnly(DateTime date) {
-  final local = date.toLocal();
-  final month = local.month.toString().padLeft(2, '0');
-  final day = local.day.toString().padLeft(2, '0');
-  return '${local.year}-$month-$day';
-}
 
 /// A product as returned by the list/create/edit endpoints — "summaries
 /// only, no trading configuration" per the list endpoint's own description.
@@ -329,16 +316,12 @@ class VatRateModel {
     this.createdAt,
     this.updatedAt,
     required this.rate,
-    required this.effectiveFrom,
-    this.effectiveTo,
   });
 
   final int id;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final double rate;
-  final DateTime? effectiveFrom;
-  final DateTime? effectiveTo;
 
   factory VatRateModel.fromJson(Map<String, dynamic> json) {
     return VatRateModel(
@@ -346,8 +329,6 @@ class VatRateModel {
       createdAt: _parseDate(json['createdAt']),
       updatedAt: _parseDate(json['updatedAt']),
       rate: (json['rate'] as num?)?.toDouble() ?? 0,
-      effectiveFrom: _parseDateOnly(json['effectiveFrom']),
-      effectiveTo: _parseDateOnly(json['effectiveTo']),
     );
   }
 }
@@ -421,14 +402,12 @@ class UpdateProductRequest {
 /// Body of `POST /inventory/products/{id}/purchase-units/{purchaseUnitId}/vat`
 /// and the nested `vat` object on [CreatePurchaseUnitRequest].
 class OpenVatRateRequest {
-  const OpenVatRateRequest({required this.rate, required this.effectiveFrom});
+  const OpenVatRateRequest({required this.rate});
 
   final double rate;
-  final DateTime effectiveFrom;
 
   Map<String, dynamic> toJson() => {
         'rate': rate,
-        'effectiveFrom': productDateOnly(effectiveFrom),
       };
 }
 
