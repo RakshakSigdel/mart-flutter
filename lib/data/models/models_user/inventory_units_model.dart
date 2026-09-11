@@ -35,7 +35,6 @@ class InventoryUnitModel {
     required this.name,
     required this.symbol,
     this.measurementType,
-    required this.conversionFactor,
     required this.referenceUnit,
     required this.systemDefined,
   });
@@ -46,11 +45,6 @@ class InventoryUnitModel {
   final String name;
   final String symbol;
   final UnitMeasurementType? measurementType;
-
-  /// How many of this unit make up one of its measurement type's reference
-  /// unit (e.g. a "kg" unit might have a conversion factor of 1000 against
-  /// a "g" reference unit).
-  final double conversionFactor;
 
   /// Whether this is the base unit its measurement type's other units
   /// convert against. Backend-computed — never sent in a create/update
@@ -72,7 +66,6 @@ class InventoryUnitModel {
       measurementType: UnitMeasurementType.fromApiValue(
         json['measurementType'] as String?,
       ),
-      conversionFactor: (json['conversionFactor'] as num?)?.toDouble() ?? 0,
       referenceUnit: json['referenceUnit'] as bool? ?? false,
       systemDefined: json['systemDefined'] as bool? ?? false,
     );
@@ -94,26 +87,23 @@ class UpsertInventoryUnitRequest {
     required this.name,
     required this.symbol,
     required this.measurementType,
-    required this.conversionFactor,
   });
 
   final String name;
   final String symbol;
   final UnitMeasurementType measurementType;
-  final double conversionFactor;
 
   Map<String, dynamic> toJson() => {
         'name': name,
         'symbol': symbol,
         'measurementType': measurementType.apiValue,
-        'conversionFactor': conversionFactor,
       };
 }
 
 /// `0.000001` -> `"0.000001"`, `1000.0` -> `"1000"` — [double.toString] uses
 /// scientific notation for small magnitudes (`1e-6`), which reads as a bug
 /// in a form field rather than a value.
-String formatConversionFactor(double value) {
+String formatUnitValue(double value) {
   if (value == value.truncateToDouble() && value.abs() < 1e15) {
     return value.truncate().toString();
   }

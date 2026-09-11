@@ -3,9 +3,7 @@ import '../../../core/utils/text_format.dart';
 DateTime? _parseDate(Object? value) =>
     value is String ? DateTime.tryParse(value) : null;
 
-/// `0.000001` -> `"0.000001"`, `1000.0` -> `"1000"` — mirrors
-/// `formatConversionFactor` in `inventory_units_model.dart`; used here for
-/// quantities, which are just as prone to floating-point noise.
+/// `0.000001` -> `"0.000001"`, `1000.0` -> `"1000"`
 String formatStockQuantity(double value) {
   if (value == value.truncateToDouble() && value.abs() < 1e15) {
     return value.truncate().toString();

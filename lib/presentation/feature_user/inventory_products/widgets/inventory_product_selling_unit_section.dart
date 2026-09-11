@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/core.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
-import '../../../../data/models/models_user/inventory_units_model.dart' show formatConversionFactor;
+import '../../../../data/models/models_user/inventory_units_model.dart' show formatUnitValue;
 import 'inventory_products_badges.dart';
 
 enum ProductSellingUnitRowAction { edit, remove }
@@ -73,7 +73,7 @@ class _SellingUnitRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final details = <String>[
-      'Pack of ${formatConversionFactor(unit.packQuantity)}',
+      'Pack of ${formatUnitValue(unit.packQuantity)}',
       formatMoney(unit.sellingPrice),
       if (unit.mrp != null) 'MRP ${formatMoney(unit.mrp)}',
       if (unit.sku != null && unit.sku!.isNotEmpty) 'SKU ${unit.sku}',

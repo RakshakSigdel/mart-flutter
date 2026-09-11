@@ -31,9 +31,6 @@ class _InventoryUnitFormState extends ConsumerState<InventoryUnitForm> {
 
   late final _name = TextEditingController(text: widget.unit?.name);
   late final _symbol = TextEditingController(text: widget.unit?.symbol);
-  late final _conversionFactor = TextEditingController(
-    text: widget.unit == null ? '' : formatConversionFactor(widget.unit!.conversionFactor),
-  );
 
   UnitMeasurementType? _measurementType;
   bool _submitting = false;
@@ -49,7 +46,6 @@ class _InventoryUnitFormState extends ConsumerState<InventoryUnitForm> {
   void dispose() {
     _name.dispose();
     _symbol.dispose();
-    _conversionFactor.dispose();
     super.dispose();
   }
 
@@ -58,11 +54,6 @@ class _InventoryUnitFormState extends ConsumerState<InventoryUnitForm> {
     final type = _measurementType;
     if (type == null) {
       setState(() => _errorMessage = 'Measurement type is required');
-      return;
-    }
-    final conversionFactor = double.tryParse(_conversionFactor.text.trim());
-    if (conversionFactor == null || conversionFactor <= 0) {
-      setState(() => _errorMessage = 'Conversion factor must be a positive number');
       return;
     }
 
@@ -76,7 +67,6 @@ class _InventoryUnitFormState extends ConsumerState<InventoryUnitForm> {
       name: _name.text.trim(),
       symbol: _symbol.text.trim(),
       measurementType: type,
-      conversionFactor: conversionFactor,
     );
     try {
       if (widget.isEditing) {
@@ -128,27 +118,6 @@ class _InventoryUnitFormState extends ConsumerState<InventoryUnitForm> {
                 DropdownMenuItem(value: type, child: Text(type.label)),
             ],
             onChanged: (value) => setState(() => _measurementType = value),
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          AppTextField(
-            controller: _conversionFactor,
-            label: 'Conversion factor',
-            hint: 'e.g. 1000',
-            helperText:
-                'How many of this unit make up one reference unit of the '
-                'same type.',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-            ],
-            enabled: !_submitting,
-            validator: (v) {
-              final parsed = double.tryParse((v ?? '').trim());
-              if (parsed == null || parsed <= 0) {
-                return 'Enter a positive number';
-              }
-              return null;
-            },
           ),
           AppFormError(message: _errorMessage),
           const SizedBox(height: AppSpacing.xl),

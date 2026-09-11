@@ -53,40 +53,6 @@ class InventoryUnitListCard extends StatelessWidget {
               if (unit.referenceUnit) const ReferenceUnitBadge(),
             ],
           ),
-          const SizedBox(height: AppSpacing.smMd),
-          const Divider(height: 1),
-          const SizedBox(height: AppSpacing.smMd),
-          _InfoRow(
-            icon: Icons.swap_horiz_rounded,
-            label: 'Conversion factor: ${formatConversionFactor(unit.conversionFactor)}',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: AppColors.iconInactive),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              label,
-              style: AppTypography.bodySmall,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
         ],
       ),
     );

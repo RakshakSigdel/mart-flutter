@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/core.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
-import '../../../../data/models/models_user/inventory_units_model.dart' show formatConversionFactor;
+import '../../../../data/models/models_user/inventory_units_model.dart' show formatUnitValue;
 import 'inventory_products_badges.dart';
 
 enum ProductPurchaseUnitRowAction { edit, vatHistory, remove }
@@ -92,7 +92,7 @@ class _PurchaseUnitRow extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Pack of ${formatConversionFactor(unit.packQuantity)} · '
+                'Pack of ${formatUnitValue(unit.packQuantity)} · '
                 '${formatMoney(unit.purchasePrice)} · '
                 'VAT ${unit.currentVatRate == null ? '—' : '${formatMoney(unit.currentVatRate)}%'}',
                 style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),

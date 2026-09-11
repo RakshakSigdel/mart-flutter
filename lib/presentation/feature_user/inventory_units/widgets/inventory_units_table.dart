@@ -39,7 +39,6 @@ class InventoryUnitsTable extends StatelessWidget {
             columns: const [
               DataColumn(label: Text('NAME')),
               DataColumn(label: Text('TYPE')),
-              DataColumn(label: Text('CONVERSION FACTOR')),
               DataColumn(label: Text('')),
               DataColumn(label: Text('')),
             ],
@@ -69,9 +68,6 @@ class InventoryUnitsTable extends StatelessWidget {
                       ),
                     ),
                     DataCell(MeasurementTypeBadge(type: unit.measurementType)),
-                    DataCell(
-                      Text(formatConversionFactor(unit.conversionFactor)),
-                    ),
                     DataCell(
                       Wrap(
                         spacing: AppSpacing.xs,

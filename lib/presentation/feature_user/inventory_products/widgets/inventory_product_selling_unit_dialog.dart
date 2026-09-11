@@ -40,7 +40,7 @@ class _InventoryProductSellingUnitDialogState
   final _formKey = GlobalKey<FormState>();
 
   late final _packQuantity = TextEditingController(
-    text: widget.existing == null ? '' : formatConversionFactor(widget.existing!.packQuantity),
+    text: widget.existing == null ? '' : formatUnitValue(widget.existing!.packQuantity),
   );
   late final _sellingPrice = TextEditingController(
     text: widget.existing == null ? '' : formatMoney(widget.existing!.sellingPrice),
