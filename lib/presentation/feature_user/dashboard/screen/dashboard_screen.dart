@@ -1,75 +1,186 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../../core/core.dart';
+import '../../../../data/models/models_user/summary_report_model.dart';
 import '../../../feature_shared/auth/controller/auth_controller.dart';
+import '../controllers/dashboard_controller.dart';
+import '../widgets/dashboard_report_card.dart';
+import '../widgets/dashboard_section.dart';
+import '../widgets/dashboard_stock_card.dart';
 
-/// Landing screen after sign-in. Only auth is built so far — this stands in
-/// for the real dashboard until that feature exists, but already shows the
-/// session data the login now returns (name, role, company).
-///
-/// Rendered as a branch of [AdminShellScreen] — no [Scaffold]/`AppBar` of its
-/// own, those live on the shell.
+/// Composes the dashboard inside the shell; data and report rendering live
+/// in their respective controller and widget files.
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authControllerProvider);
-    final session = authState is AuthAuthenticated ? authState.session : null;
-    final width = MediaQuery.sizeOf(context).width;
+    final range = ref.watch(dashboardControllerProvider);
+    final sales = ref.watch(dashboardSalesProvider(range));
+    final purchases = ref.watch(dashboardPurchasesProvider(range));
+    final stock = ref.watch(dashboardStockProvider);
+    final auth = ref.watch(authControllerProvider);
+    final name = auth is AuthAuthenticated ? auth.session.displayName : 'Staff';
+    final loading = sales.isLoading || purchases.isLoading || stock.isLoading;
 
-    return Center(
+    Future<void> refresh() async {
+      // Start all three requests before awaiting. Errors are rendered in each
+      // section; they must not escape into the pull-to-refresh callback.
+      ref.invalidate(dashboardSalesProvider(range));
+      ref.invalidate(dashboardPurchasesProvider(range));
+      ref.invalidate(dashboardStockProvider);
+      await Future.wait([
+        ref
+            .read(dashboardSalesProvider(range).future)
+            .then<void>((_) {}, onError: (Object _, StackTrace __) {}),
+        ref
+            .read(dashboardPurchasesProvider(range).future)
+            .then<void>((_) {}, onError: (Object _, StackTrace __) {}),
+        ref
+            .read(dashboardStockProvider.future)
+            .then<void>((_) {}, onError: (Object _, StackTrace __) {}),
+      ]);
+    }
+
+    return RefreshIndicator(
+      onRefresh: refresh,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: responsiveValue(
-              width: width,
-              phone: double.infinity,
-              tablet: 480,
-              desktop: 480,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: AppBreakpoints.contentMaxWidth,
             ),
-          ),
-          child: AppFadeIn(
-            child: AppCard(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primarySoft,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check_circle_outline_rounded,
-                      size: 32,
-                      color: AppColors.primaryDeep,
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySoft,
+                    borderRadius: AppBorderRadius.radiusXL,
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'Welcome, ${session?.displayName ?? 'Staff'}',
-                    style: AppTypography.title,
-                    textAlign: TextAlign.center,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'BUSINESS OVERVIEW',
+                        style: AppTypography.labelSmall.copyWith(
+                          color: AppColors.primaryDeep,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.smMd),
+                      Text(
+                        'Welcome, $name',
+                        style: AppTypography.heading.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Your sales, purchases and inventory at a glance.',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
-                  if (session?.role != null) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    AppBadge(label: session!.role!, tone: AppBadgeTone.primary),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: AppDropdownField<ReportDateRange>(
+                        label: 'Sales & purchases period',
+                        value: range,
+                        items: [
+                          for (final item in ReportDateRange.values)
+                            DropdownMenuItem(
+                              value: item,
+                              child: Text(item.label),
+                            ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null)
+                            ref
+                                .read(dashboardControllerProvider.notifier)
+                                .selectRange(value);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    IconButton(
+                      tooltip: 'Refresh dashboard',
+                      onPressed: loading ? null : refresh,
+                      icon: const Icon(Icons.refresh_rounded),
+                    ),
                   ],
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'You are signed in. The real dashboard isn\'t built yet '
-                    '— this screen is a placeholder.',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cards = [
+                      DashboardSection(
+                        title: 'Sales',
+                        value: sales,
+                        onRetry: () =>
+                            ref.invalidate(dashboardSalesProvider(range)),
+                        builder: (report) => DashboardReportCard(
+                          title: 'Sales',
+                          period: range.label,
+                          report: report,
+                          icon: Icons.receipt_long_outlined,
+                          color: AppColors.primaryDeep,
+                        ),
+                      ),
+                      DashboardSection(
+                        title: 'Purchases',
+                        value: purchases,
+                        onRetry: () =>
+                            ref.invalidate(dashboardPurchasesProvider(range)),
+                        builder: (report) => DashboardReportCard(
+                          title: 'Purchases',
+                          period: range.label,
+                          report: report,
+                          icon: Icons.shopping_cart_outlined,
+                          color: AppColors.info,
+                        ),
+                      ),
+                    ];
+                    if (constraints.maxWidth < AppBreakpoints.tablet) {
+                      return Column(
+                        children: [
+                          cards[0],
+                          const SizedBox(height: AppSpacing.md),
+                          cards[1],
+                        ],
+                      );
+                    }
+                    // Match the taller report's natural height without a
+                    // fixed height that could clip additional payment rows.
+                    return IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: cards[0]),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(child: cards[1]),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                DashboardSection(
+                  title: 'Stock health',
+                  value: stock,
+                  onRetry: () => ref.invalidate(dashboardStockProvider),
+                  builder: (overview) => DashboardStockCard(overview: overview),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
             ),
           ),
         ),

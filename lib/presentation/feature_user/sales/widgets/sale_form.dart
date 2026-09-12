@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,7 +16,12 @@ import 'sale_line_item_row.dart';
 /// (`SaleFormScreen`) can show a snackbar and hand the fresh record
 /// straight to the detail screen it pushes next.
 class SaleForm extends ConsumerStatefulWidget {
-  const SaleForm({super.key});
+  const SaleForm({super.key, this.onSubmitted});
+
+  /// Called after the API has created the sale. When omitted, this form is
+  /// being shown on a pushed route and returns the result to that route's
+  /// caller in the usual way.
+  final ValueChanged<SaleDetailModel>? onSubmitted;
 
   @override
   ConsumerState<SaleForm> createState() => _SaleFormState();
@@ -140,6 +145,7 @@ class _SaleFormState extends ConsumerState<SaleForm> {
       paymentMethod: _paymentMethod,
       tenderedAmount: tendered,
       discountAmount: discount,
+      customerId: _selectedCustomer?.id,
       customerName: _customerNameController.text.trim().isEmpty
           ? null
           : _customerNameController.text.trim(),
@@ -168,7 +174,12 @@ class _SaleFormState extends ConsumerState<SaleForm> {
       final sale = await ref
           .read(salesControllerProvider.notifier)
           .createSale(request);
-      if (mounted) Navigator.of(context).pop(sale);
+      if (!mounted) return;
+      if (widget.onSubmitted case final onSubmitted?) {
+        onSubmitted(sale);
+      } else {
+        Navigator.of(context).pop(sale);
+      }
     } on ApiException catch (e) {
       if (mounted) setState(() => _errorMessage = e.message);
     } finally {
@@ -273,7 +284,10 @@ class _SaleFormState extends ConsumerState<SaleForm> {
           Row(
             children: [
               Expanded(
-                child: Text('Customer (optional)', style: AppTypography.subtitle),
+                child: Text(
+                  'Customer (optional)',
+                  style: AppTypography.subtitle,
+                ),
               ),
               if (_selectedCustomer != null)
                 TextButton.icon(

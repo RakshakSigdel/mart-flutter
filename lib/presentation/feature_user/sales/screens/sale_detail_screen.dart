@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../core/core.dart';
@@ -13,8 +14,18 @@ import '../widgets/sale_badges.dart';
 import '../widgets/sale_take_payment_dialog.dart';
 
 const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _formatDate(DateTime? date) {
@@ -105,6 +116,20 @@ class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: AppColors.background,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back to sales',
+          onPressed: () {
+            // POS replaces its root route with this detail page on success,
+            // so there is no page to pop in that case. Detail pages opened
+            // from Sales History retain their normal pushed-route back flow.
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(Routes.sales);
+            }
+          },
+        ),
         title: Text(sale?.invoiceNumber ?? 'Sale'),
         actions: [
           // A4 invoice
@@ -156,8 +181,9 @@ class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
     if (state.error != null && sale == null) {
       return AppEmptyState.error(
         message: state.error,
-        onAction: () =>
-            ref.read(saleDetailControllerProvider(widget.saleId).notifier).refresh(),
+        onAction: () => ref
+            .read(saleDetailControllerProvider(widget.saleId).notifier)
+            .refresh(),
       );
     }
 
@@ -296,7 +322,9 @@ class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
                                     size: 16,
                                   ),
                             isLoading: _downloadingInvoice,
-                            onPressed: _downloadingInvoice ? null : _printInvoice,
+                            onPressed: _downloadingInvoice
+                                ? null
+                                : _printInvoice,
                           ),
                         ),
                         const SizedBox(width: AppSpacing.smMd),
@@ -312,12 +340,11 @@ class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Icon(
-                                    Icons.receipt_outlined,
-                                    size: 16,
-                                  ),
+                                : const Icon(Icons.receipt_outlined, size: 16),
                             isLoading: _downloadingReceipt,
-                            onPressed: _downloadingReceipt ? null : _printReceipt,
+                            onPressed: _downloadingReceipt
+                                ? null
+                                : _printReceipt,
                           ),
                         ),
                       ],

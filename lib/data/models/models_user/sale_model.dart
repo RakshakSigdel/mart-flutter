@@ -260,6 +260,7 @@ class CreateSaleRequest {
     this.channel = 'POS',
     this.tenderedAmount,
     this.discountAmount,
+    this.customerId,
     this.customerName,
     this.customerPhone,
     this.customerPan,
@@ -272,6 +273,7 @@ class CreateSaleRequest {
   final String channel;
   final double? tenderedAmount;
   final double? discountAmount;
+  final int? customerId;
   final String? customerName;
   final String? customerPhone;
   final String? customerPan;
@@ -284,6 +286,7 @@ class CreateSaleRequest {
     'channel': channel,
     if (tenderedAmount != null) 'tenderedAmount': tenderedAmount,
     if (discountAmount != null) 'discountAmount': discountAmount,
+    if (customerId != null) 'customerId': customerId,
     if (customerName != null && customerName!.isNotEmpty)
       'customerName': customerName,
     if (customerPhone != null && customerPhone!.isNotEmpty)

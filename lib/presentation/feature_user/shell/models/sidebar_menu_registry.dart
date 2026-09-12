@@ -72,9 +72,9 @@ const Map<String, String> _menuKeyRoutes = {
   // (distinct from PRODUCTS/CATEGORIES/UNITS above) — all three of its
   // sub-items resolve here too, so the group collapses to one link.
   'INVENTORY': Routes.stock,
-  'STOCK_LEVELS': Routes.stock,
-  'STOCK_ADJUSTMENTS': Routes.stock,
-  'STOCK_WRITE_OFFS': Routes.stock,
+  'STOCK_LEVELS': Routes.stockLevels,
+  'STOCK_ADJUSTMENTS': Routes.stockAdjustments,
+  'STOCK_WRITE_OFFS': Routes.stockAdjustments,
   // "Goods receipts" isn't a distinct step in this build — recording a
   // purchase already receives the goods, so both keys land on the same
   // screen and the group collapses to one link.
@@ -87,7 +87,7 @@ const Map<String, String> _menuKeyRoutes = {
   // there's no separate quick-scan terminal screen in this build.
   // "Invoices" is the same bill by another name here, so it resolves the
   // same way; "Returns" genuinely isn't built yet and stays unresolved.
-  'POS': Routes.sales,
+  'POS': Routes.pos,
   'SALES': Routes.sales,
   'ORDERS': Routes.sales,
   'INVOICES': Routes.sales,
@@ -116,8 +116,11 @@ const Set<String> _shellBranchPaths = {
   Routes.vendors,
   Routes.customers,
   Routes.stock,
+  Routes.stockLevels,
+  Routes.stockAdjustments,
   Routes.purchases,
   Routes.sales,
+  Routes.pos,
 };
 
 bool isSidebarShellBranch(String path) => _shellBranchPaths.contains(path);
@@ -217,7 +220,8 @@ ResolvedSidebarEntry _resolveItem(SidebarItemModel item) {
 
   final children = <ResolvedSidebarLink>[];
   final seenPaths = <String>{};
-  
+  // API entries with separate menu keys must retain their own routes so
+  // selection is exclusive even when their screens share implementation.
   for (final sub in item.subItems) {
     final path = _menuKeyRoutes[sub.menuKey] ?? Routes.notFound;
     // Don't deduplicate notFound paths, let them all show up so we know what's missing.

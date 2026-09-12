@@ -128,6 +128,9 @@ class Routes {
 
   static const String stock = '/stock';
 
+  static const String stockLevels = '$inventory/stock';
+  static const String stockAdjustments = '$stockLevels/adjustments';
+
   /// Path template for registering the stock product-detail route (level,
   /// movement ledger) with [GoRouter]. Screens must not build this string
   /// by hand — use [stockProductDetail].
@@ -149,6 +152,8 @@ class Routes {
   static String purchaseDetail(int id) => '$purchases/$id';
 
   static const String sales = '/sales';
+
+  static const String pos = '/pos';
 
   /// The ring-up-a-sale form, as its own page — same reasoning as
   /// [staffNew]. No edit form — a rung-up bill is immutable apart from

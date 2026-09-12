@@ -23,10 +23,15 @@ class _CustomerFormState extends ConsumerState<CustomerForm> {
   late final _name = TextEditingController(text: widget.customer?.name);
   late final _phone = TextEditingController(text: widget.customer?.phone);
   late final _email = TextEditingController(text: widget.customer?.email);
-  late final _panNumber = TextEditingController(text: widget.customer?.panNumber);
+  late final _panNumber = TextEditingController(
+    text: widget.customer?.panNumber,
+  );
   late final _address = TextEditingController(text: widget.customer?.address);
   late final _creditLimit = TextEditingController(
-      text: widget.customer != null ? widget.customer!.creditLimit.toString() : '0');
+    text: widget.customer != null
+        ? widget.customer!.creditLimit.toString()
+        : '0',
+  );
   late bool _active = widget.customer?.active ?? true;
 
   bool _submitting = false;
@@ -131,7 +136,9 @@ class _CustomerFormState extends ConsumerState<CustomerForm> {
           SwitchListTile(
             title: const Text('Active Customer'),
             value: _active,
-            onChanged: _submitting ? null : (val) => setState(() => _active = val),
+            onChanged: _submitting
+                ? null
+                : (val) => setState(() => _active = val),
             contentPadding: EdgeInsets.zero,
           ),
           AppFormError(message: _errorMessage),

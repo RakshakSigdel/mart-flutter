@@ -28,7 +28,7 @@ class CustomerRemoteDataSource {
           if (sortDirection != null) 'sortDirection': sortDirection,
         },
       );
-      return _unwrap(
+      return await _unwrap(
         response.data,
         (raw) => PageResponse<CustomerModel>.fromJson(
           raw as Map<String, dynamic>,
@@ -42,8 +42,10 @@ class CustomerRemoteDataSource {
 
   Future<List<CustomerModel>> selection() async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>('/customers/selection');
-      return _unwrap(
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/customers/selection',
+      );
+      return await _unwrap(
         response.data,
         (raw) => (raw as List<dynamic>)
             .map((e) => CustomerModel.fromJson(e as Map<String, dynamic>))
@@ -57,7 +59,7 @@ class CustomerRemoteDataSource {
   Future<CustomerModel> getById(int id) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>('/customers/$id');
-      return _unwrap(
+      return await _unwrap(
         response.data,
         (raw) => CustomerModel.fromJson(raw as Map<String, dynamic>),
       );
@@ -68,10 +70,44 @@ class CustomerRemoteDataSource {
 
   Future<CustomerModel> getByPhone(String phone) async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>('/customers/by-phone/$phone');
-      return _unwrap(
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/customers/by-phone/$phone',
+      );
+      return await _unwrap(
         response.data,
         (raw) => CustomerModel.fromJson(raw as Map<String, dynamic>),
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<CustomerOutstandingModel> outstanding(int id) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/customers/$id/outstanding',
+      );
+      return await _unwrap(
+        response.data,
+        (raw) => CustomerOutstandingModel.fromJson(raw as Map<String, dynamic>),
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<CustomerSettlementModel> settle(
+    int id,
+    SettleCustomerCreditRequest request,
+  ) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/customers/$id/settle',
+        data: request.toJson(),
+      );
+      return await _unwrap(
+        response.data,
+        (raw) => CustomerSettlementModel.fromJson(raw as Map<String, dynamic>),
       );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -84,7 +120,7 @@ class CustomerRemoteDataSource {
         '/customers',
         data: request.toJson(),
       );
-      return _unwrap(
+      return await _unwrap(
         response.data,
         (raw) => CustomerModel.fromJson(raw as Map<String, dynamic>),
       );
@@ -99,7 +135,7 @@ class CustomerRemoteDataSource {
         '/customers/$id',
         data: request.toJson(),
       );
-      return _unwrap(
+      return await _unwrap(
         response.data,
         (raw) => CustomerModel.fromJson(raw as Map<String, dynamic>),
       );
@@ -110,8 +146,10 @@ class CustomerRemoteDataSource {
 
   Future<String> remove(int id) async {
     try {
-      final response = await _dio.delete<Map<String, dynamic>>('/customers/$id');
-      return _unwrap(response.data, (raw) => raw as String);
+      final response = await _dio.delete<Map<String, dynamic>>(
+        '/customers/$id',
+      );
+      return await _unwrap(response.data, (raw) => raw as String);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

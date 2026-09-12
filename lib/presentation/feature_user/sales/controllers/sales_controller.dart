@@ -181,6 +181,7 @@ class SalesController extends Notifier<SalesState> {
         page: page,
         size: state.pageSize,
       );
+      if (!ref.mounted) return;
       state = state.copyWith(
         sales: result.content,
         isLoading: false,
@@ -195,6 +196,7 @@ class SalesController extends Notifier<SalesState> {
       );
     } on ApiException catch (e) {
       await _handleUnauthorized(e);
+      if (!ref.mounted) return;
       state = state.copyWith(isLoading: false, error: e.message);
     }
   }
@@ -209,14 +211,21 @@ class SalesController extends Notifier<SalesState> {
         from: state.fromFilter,
         to: state.toFilter,
       );
+      if (!ref.mounted) return;
       state = state.copyWith(isTotalsLoading: false, totals: totals);
     } on ApiException catch (e) {
       await _handleUnauthorized(e);
+      if (!ref.mounted) return;
       state = state.copyWith(isTotalsLoading: false);
     }
   }
 
   Future<SaleDetailModel> createSale(CreateSaleRequest request) async {
+    // POS reads this auto-disposed controller without watching the sales
+    // list. Keep it alive until both the mutation and the list refresh have
+    // settled; otherwise either async operation can update a disposed Ref
+    // before the form gets the created sale and can navigate onward.
+    final keepAliveLink = ref.keepAlive();
     try {
       final sale = await _dataSource.create(request);
       await refresh();
@@ -224,6 +233,8 @@ class SalesController extends Notifier<SalesState> {
     } on ApiException catch (e) {
       await _handleUnauthorized(e);
       rethrow;
+    } finally {
+      keepAliveLink.close();
     }
   }
 
@@ -232,7 +243,7 @@ class SalesController extends Notifier<SalesState> {
   /// redirect reacts to the resulting state change and sends the user back
   /// to login on its own.
   Future<void> _handleUnauthorized(ApiException e) async {
-    if (e.type == ApiFailureType.unauthorized) {
+    if (e.type == ApiFailureType.unauthorized && ref.mounted) {
       await ref.read(authControllerProvider.notifier).logout();
     }
   }

@@ -81,6 +81,7 @@ bool _isAdminShellRoute(String location) =>
     location.startsWith(Routes.vendors) ||
     location.startsWith(Routes.customers) ||
     location.startsWith(Routes.stock) ||
+    location.startsWith(Routes.pos) ||
     location.startsWith(Routes.purchases) ||
     location.startsWith(Routes.sales);
 
@@ -271,6 +272,26 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: Routes.stockLevels,
+                name: 'stockLevels',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const StockScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.stockAdjustments,
+                name: 'stockAdjustments',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const StockScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: Routes.purchases,
                 name: 'purchases',
                 pageBuilder: (context, state) =>
@@ -285,6 +306,19 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'sales',
                 pageBuilder: (context, state) =>
                     AppPageRoute.none(state, const SalesScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.pos,
+                name: 'pos',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(
+                      state,
+                      const SaleFormScreen(showAppBar: false),
+                    ),
               ),
             ],
           ),
