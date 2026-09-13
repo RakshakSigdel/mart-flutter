@@ -12,12 +12,14 @@ class VendorsToolbar extends StatelessWidget {
     required this.searchController,
     required this.onSearchChanged,
     required this.onSearchSubmitted,
+    required this.onHistoryPressed,
     required this.onAddPressed,
   });
 
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onSearchSubmitted;
+  final VoidCallback onHistoryPressed;
   final VoidCallback onAddPressed;
 
   @override
@@ -40,11 +42,20 @@ class VendorsToolbar extends StatelessWidget {
       onPressed: onAddPressed,
     );
 
+    final historyButton = AppButton(
+      label: 'All history',
+      variant: AppButtonVariant.secondary,
+      leading: const Icon(Icons.history_rounded),
+      onPressed: onHistoryPressed,
+    );
+
     if (isWide) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: search),
+          const SizedBox(width: AppSpacing.smMd),
+          historyButton,
           const SizedBox(width: AppSpacing.smMd),
           addButton,
         ],
@@ -55,6 +66,8 @@ class VendorsToolbar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         search,
+        const SizedBox(height: AppSpacing.smMd),
+        historyButton,
         const SizedBox(height: AppSpacing.smMd),
         addButton,
       ],

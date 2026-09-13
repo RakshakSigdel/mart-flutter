@@ -298,6 +298,19 @@ class CreateSaleRequest {
   };
 }
 
+/// Paper formats accepted by the backend-rendered IRD tax-invoice endpoint.
+enum TaxInvoicePaperType {
+  mm80('MM80', '80 mm receipt'),
+  mm75('MM75', '75 mm receipt'),
+  a4('A4', 'A4'),
+  a5('A5', 'A5'),
+  a6('A6', 'A6');
+
+  const TaxInvoicePaperType(this.apiValue, this.label);
+  final String apiValue;
+  final String label;
+}
+
 /// One line of [CreateSaleRequest.items].
 class CreateSaleItemRequest {
   const CreateSaleItemRequest({

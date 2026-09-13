@@ -23,17 +23,17 @@ class CustomersState {
   });
 
   factory CustomersState.initial() => const CustomersState(
-        customers: [],
-        isLoading: true,
-        error: null,
-        search: '',
-        pageNumber: 1,
-        pageSize: 20,
-        totalPages: 0,
-        totalElements: 0,
-        isLast: true,
-        busyIds: {},
-      );
+    customers: [],
+    isLoading: true,
+    error: null,
+    search: '',
+    pageNumber: 1,
+    pageSize: 20,
+    totalPages: 0,
+    totalElements: 0,
+    isLast: true,
+    busyIds: {},
+  );
 
   final List<CustomerModel> customers;
   final bool isLoading;
@@ -136,7 +136,10 @@ class CustomersController extends Notifier<CustomersState> {
     }
   }
 
-  Future<CustomerModel> updateCustomer(int id, UpsertCustomerRequest request) async {
+  Future<CustomerModel> updateCustomer(
+    int id,
+    UpsertCustomerRequest request,
+  ) async {
     try {
       final customer = await _dataSource.update(id, request);
       await refresh();
@@ -148,10 +151,21 @@ class CustomersController extends Notifier<CustomersState> {
   }
 
   Future<String> removeCustomer(int id) => _withBusy(id, () async {
-        final message = await _dataSource.remove(id);
-        await refresh();
-        return message;
-      });
+    final message = await _dataSource.remove(id);
+    await refresh();
+    return message;
+  });
+
+  /// The directory search is useful for partial matches; this is the exact
+  /// phone-number lookup used by the dedicated toolbar action.
+  Future<CustomerModel> findByPhone(String phone) async {
+    try {
+      return await _dataSource.getByPhone(phone.trim());
+    } on ApiException catch (e) {
+      await _handleUnauthorized(e);
+      rethrow;
+    }
+  }
 
   Future<T> _withBusy<T>(int id, Future<T> Function() action) async {
     state = state.copyWith(busyIds: {...state.busyIds, id});
@@ -174,5 +188,5 @@ class CustomersController extends Notifier<CustomersState> {
 
 final customersControllerProvider =
     NotifierProvider.autoDispose<CustomersController, CustomersState>(
-  CustomersController.new,
-);
+      CustomersController.new,
+    );

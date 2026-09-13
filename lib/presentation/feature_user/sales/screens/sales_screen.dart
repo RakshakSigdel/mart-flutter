@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sts_retail/core/network/api_exception.dart';
 
 import '../../../../core/core.dart';
 import '../../../../data/models/models_user/sale_model.dart';
@@ -61,6 +62,45 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
     }
   }
 
+  Future<void> _findInvoice() async {
+    final invoiceController = TextEditingController();
+    final invoiceNumber = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Find invoice'),
+        content: AppTextField(
+          controller: invoiceController,
+          label: 'Invoice number',
+          autofocus: true,
+          textInputAction: TextInputAction.search,
+          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+        ),
+        actions: [
+          AppButton(
+            label: 'Cancel',
+            variant: AppButtonVariant.secondary,
+            onPressed: () => Navigator.of(dialogContext).pop(),
+          ),
+          AppButton(
+            label: 'Open invoice',
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(invoiceController.text),
+          ),
+        ],
+      ),
+    );
+    invoiceController.dispose();
+    if (invoiceNumber == null || invoiceNumber.trim().isEmpty || !mounted) {
+      return;
+    }
+    try {
+      final sale = await _controller.findByInvoiceNumber(invoiceNumber);
+      if (mounted) context.push(Routes.saleDetail(sale.id));
+    } on ApiException catch (e) {
+      if (mounted) AppSnackBar.error(context, e.message);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(salesControllerProvider);
@@ -95,6 +135,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                 fromFilter: state.fromFilter,
                 toFilter: state.toFilter,
                 onDateRangeChanged: _controller.setDateRange,
+                onFindInvoicePressed: _findInvoice,
                 onAddPressed: _addSale,
               ),
               const SizedBox(height: AppSpacing.md),

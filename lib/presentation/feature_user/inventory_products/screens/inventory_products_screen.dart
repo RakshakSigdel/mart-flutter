@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/core.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
+import '../../../../data/models/models_user/inventory_units_model.dart'
+    show formatUnitValue;
 import '../controllers/inventory_products_controller.dart';
 import '../widgets/inventory_products_confirm_dialog.dart';
 import '../widgets/inventory_products_list_card.dart';
@@ -24,10 +26,12 @@ class InventoryProductsScreen extends ConsumerStatefulWidget {
   const InventoryProductsScreen({super.key});
 
   @override
-  ConsumerState<InventoryProductsScreen> createState() => _InventoryProductsScreenState();
+  ConsumerState<InventoryProductsScreen> createState() =>
+      _InventoryProductsScreenState();
 }
 
-class _InventoryProductsScreenState extends ConsumerState<InventoryProductsScreen> {
+class _InventoryProductsScreenState
+    extends ConsumerState<InventoryProductsScreen> {
   final _searchController = TextEditingController();
   final _searchDebouncer = Debouncer();
 
@@ -60,6 +64,60 @@ class _InventoryProductsScreenState extends ConsumerState<InventoryProductsScree
     }
   }
 
+  Future<void> _findBarcode() async {
+    final barcodeController = TextEditingController();
+    final barcode = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Find barcode'),
+        content: AppTextField(
+          controller: barcodeController,
+          label: 'Barcode',
+          autofocus: true,
+          textInputAction: TextInputAction.search,
+          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+        ),
+        actions: [
+          AppButton(
+            label: 'Cancel',
+            variant: AppButtonVariant.secondary,
+            onPressed: () => Navigator.of(dialogContext).pop(),
+          ),
+          AppButton(
+            label: 'Find',
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(barcodeController.text),
+          ),
+        ],
+      ),
+    );
+    barcodeController.dispose();
+    if (barcode == null || barcode.trim().isEmpty || !mounted) return;
+    try {
+      final unit = await _controller.findByBarcode(barcode);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Barcode match'),
+          content: Text(
+            '${unit.unit.name} (${unit.unit.symbol})\\n'
+            'Selling price: ${formatMoney(unit.sellingPrice)}\\n'
+            'Pack quantity: ${formatUnitValue(unit.packQuantity)}',
+          ),
+          actions: [
+            AppButton(
+              label: 'Close',
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+          ],
+        ),
+      );
+    } on ApiException catch (e) {
+      if (mounted) AppSnackBar.error(context, e.message);
+    }
+  }
+
   Future<void> _handleRowAction(
     ProductModel product,
     InventoryProductRowAction action,
@@ -69,7 +127,9 @@ class _InventoryProductsScreenState extends ConsumerState<InventoryProductsScree
         context.push(Routes.inventoryProductDetail(product.id));
         break;
       case InventoryProductRowAction.edit:
-        final result = await context.push<bool>(Routes.inventoryProductEdit(product.id));
+        final result = await context.push<bool>(
+          Routes.inventoryProductEdit(product.id),
+        );
         if (result == true && mounted) {
           AppSnackBar.success(context, 'Product updated.');
         }
@@ -78,7 +138,8 @@ class _InventoryProductsScreenState extends ConsumerState<InventoryProductsScree
         final confirmed = await showInventoryProductConfirmDialog(
           context,
           title: 'Retire product',
-          message: '${product.name} will be retired and hidden from active listings.',
+          message:
+              '${product.name} will be retired and hidden from active listings.',
           confirmLabel: 'Retire',
           destructive: true,
         );
@@ -111,7 +172,9 @@ class _InventoryProductsScreenState extends ConsumerState<InventoryProductsScree
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: AppBreakpoints.contentMaxWidth),
+        constraints: const BoxConstraints(
+          maxWidth: AppBreakpoints.contentMaxWidth,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
@@ -130,6 +193,7 @@ class _InventoryProductsScreenState extends ConsumerState<InventoryProductsScree
                 onCategoryFilterChanged: _controller.setCategoryFilter,
                 activeFilter: state.activeFilter,
                 onActiveFilterChanged: _controller.setActiveFilter,
+                onBarcodeLookupPressed: _findBarcode,
                 onAddPressed: _addProduct,
               ),
               const SizedBox(height: AppSpacing.md),
@@ -157,7 +221,10 @@ class _InventoryProductsScreenState extends ConsumerState<InventoryProductsScree
     }
 
     if (state.error != null) {
-      return AppEmptyState.error(message: state.error, onAction: _controller.refresh);
+      return AppEmptyState.error(
+        message: state.error,
+        onAction: _controller.refresh,
+      );
     }
 
     if (state.isEmpty) {

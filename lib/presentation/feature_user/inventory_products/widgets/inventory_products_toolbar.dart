@@ -18,6 +18,7 @@ class InventoryProductsToolbar extends StatelessWidget {
     required this.onCategoryFilterChanged,
     required this.activeFilter,
     required this.onActiveFilterChanged,
+    required this.onBarcodeLookupPressed,
     required this.onAddPressed,
   });
 
@@ -29,6 +30,7 @@ class InventoryProductsToolbar extends StatelessWidget {
   final ValueChanged<int?> onCategoryFilterChanged;
   final bool? activeFilter;
   final ValueChanged<bool?> onActiveFilterChanged;
+  final VoidCallback onBarcodeLookupPressed;
   final VoidCallback onAddPressed;
 
   static const _activeItems = <DropdownMenuItem<bool?>>[
@@ -63,7 +65,9 @@ class InventoryProductsToolbar extends StatelessWidget {
     final categoryFilterField = SizedBox(
       width: isWide ? 200 : double.infinity,
       child: AppDropdownField<int?>(
-        value: categoryOptions.any((c) => c.id == categoryFilter) ? categoryFilter : null,
+        value: categoryOptions.any((c) => c.id == categoryFilter)
+            ? categoryFilter
+            : null,
         items: categoryItems,
         onChanged: onCategoryFilterChanged,
         hint: 'All categories',
@@ -86,6 +90,13 @@ class InventoryProductsToolbar extends StatelessWidget {
       onPressed: onAddPressed,
     );
 
+    final barcodeButton = AppButton(
+      label: 'Find barcode',
+      variant: AppButtonVariant.secondary,
+      leading: const Icon(Icons.qr_code_scanner_outlined),
+      onPressed: onBarcodeLookupPressed,
+    );
+
     if (isWide) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,6 +106,8 @@ class InventoryProductsToolbar extends StatelessWidget {
           categoryFilterField,
           const SizedBox(width: AppSpacing.smMd),
           activeFilterField,
+          const SizedBox(width: AppSpacing.smMd),
+          barcodeButton,
           const SizedBox(width: AppSpacing.smMd),
           addButton,
         ],
@@ -109,6 +122,8 @@ class InventoryProductsToolbar extends StatelessWidget {
         categoryFilterField,
         const SizedBox(height: AppSpacing.smMd),
         activeFilterField,
+        const SizedBox(height: AppSpacing.smMd),
+        barcodeButton,
         const SizedBox(height: AppSpacing.smMd),
         addButton,
       ],

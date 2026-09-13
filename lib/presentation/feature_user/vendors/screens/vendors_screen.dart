@@ -7,6 +7,7 @@ import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/vendor_model.dart';
 import '../controllers/vendors_controller.dart';
 import '../widgets/vendor_row_actions.dart';
+import '../widgets/all_vendor_history_dialog.dart';
 import '../widgets/vendors_confirm_dialog.dart';
 import '../widgets/vendors_list_card.dart';
 import '../widgets/vendors_pagination_bar.dart';
@@ -132,6 +133,7 @@ class _VendorsScreenState extends ConsumerState<VendorsScreen> {
                   _controller.setSearch(value);
                   _controller.submitSearch();
                 },
+                onHistoryPressed: () => showAllVendorHistoryDialog(context),
                 onAddPressed: _addVendor,
               ),
               const SizedBox(height: AppSpacing.md),

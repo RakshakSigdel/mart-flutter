@@ -37,7 +37,6 @@ class _SaleFormState extends ConsumerState<SaleForm> {
   final _remarkController = TextEditingController();
 
   PaymentMethod _paymentMethod = PaymentMethod.cash;
-  TaxScheme _taxScheme = TaxScheme.vat;
 
   /// The customer selected from the existing-customer dropdown.
   /// Null when using freehand entry.
@@ -141,7 +140,9 @@ class _SaleFormState extends ConsumerState<SaleForm> {
     });
 
     final request = CreateSaleRequest(
-      taxScheme: _taxScheme,
+      // The create-sale API still requires a scheme; POS uses its existing
+      // VAT default without exposing a per-sale override.
+      taxScheme: TaxScheme.vat,
       paymentMethod: _paymentMethod,
       tenderedAmount: tendered,
       discountAmount: discount,
@@ -198,45 +199,18 @@ class _SaleFormState extends ConsumerState<SaleForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Payment & tax ─────────────────────────────────────────────────
-          Row(
-            children: [
-              Expanded(
-                child: AppDropdownField<PaymentMethod>(
-                  label: 'Payment method',
-                  value: _paymentMethod,
-                  enabled: !_submitting,
-                  items: [
-                    for (final method in PaymentMethod.values)
-                      DropdownMenuItem(
-                        value: method,
-                        child: Text(method.label),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) setState(() => _paymentMethod = value);
-                  },
-                ),
-              ),
-              const SizedBox(width: AppSpacing.smMd),
-              Expanded(
-                child: AppDropdownField<TaxScheme>(
-                  label: 'Tax scheme',
-                  value: _taxScheme,
-                  enabled: !_submitting,
-                  items: [
-                    for (final scheme in TaxScheme.values)
-                      DropdownMenuItem(
-                        value: scheme,
-                        child: Text(scheme.label),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) setState(() => _taxScheme = value);
-                  },
-                ),
-              ),
+          // POS only selects the payment method.
+          AppDropdownField<PaymentMethod>(
+            label: 'Payment method',
+            value: _paymentMethod,
+            enabled: !_submitting,
+            items: [
+              for (final method in PaymentMethod.values)
+                DropdownMenuItem(value: method, child: Text(method.label)),
             ],
+            onChanged: (value) {
+              if (value != null) setState(() => _paymentMethod = value);
+            },
           ),
           const SizedBox(height: AppSpacing.smMd),
 

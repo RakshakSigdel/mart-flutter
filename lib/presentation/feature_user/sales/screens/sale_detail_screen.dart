@@ -55,8 +55,8 @@ class SaleDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
-  bool _downloadingInvoice = false;
-  bool _downloadingReceipt = false;
+  bool _printingInvoice = false;
+  TaxInvoicePaperType _paperType = TaxInvoicePaperType.mm80;
 
   Future<void> _takePayment(SaleDetailModel sale) async {
     final result = await showSaleTakePaymentDialog(
@@ -70,13 +70,14 @@ class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
   }
 
   Future<void> _printInvoice() async {
-    setState(() => _downloadingInvoice = true);
+    setState(() => _printingInvoice = true);
     try {
       final bytes = await ref
           .read(saleDetailControllerProvider(widget.saleId).notifier)
-          .downloadInvoice();
+          .downloadTaxInvoice(_paperType);
       final sale = ref.read(saleDetailControllerProvider(widget.saleId)).sale;
-      final filename = 'invoice-${sale?.invoiceNumber ?? widget.saleId}.pdf';
+      final filename =
+          'tax-invoice-${sale?.invoiceNumber ?? widget.saleId}-${_paperType.apiValue}.pdf';
       await _openPdfInBrowser(bytes, filename);
     } on ApiException catch (e) {
       if (mounted) AppSnackBar.error(context, e.message);
@@ -84,26 +85,7 @@ class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
       debugPrint('Invoice error: $e\n$st');
       if (mounted) AppSnackBar.error(context, 'Could not print invoice: $e');
     } finally {
-      if (mounted) setState(() => _downloadingInvoice = false);
-    }
-  }
-
-  Future<void> _printReceipt() async {
-    setState(() => _downloadingReceipt = true);
-    try {
-      final bytes = await ref
-          .read(saleDetailControllerProvider(widget.saleId).notifier)
-          .downloadReceipt();
-      final sale = ref.read(saleDetailControllerProvider(widget.saleId)).sale;
-      final filename = 'receipt-${sale?.invoiceNumber ?? widget.saleId}.pdf';
-      await _openPdfInBrowser(bytes, filename);
-    } on ApiException catch (e) {
-      if (mounted) AppSnackBar.error(context, e.message);
-    } catch (e, st) {
-      debugPrint('Receipt error: $e\n$st');
-      if (mounted) AppSnackBar.error(context, 'Could not print receipt: $e');
-    } finally {
-      if (mounted) setState(() => _downloadingReceipt = false);
+      if (mounted) setState(() => _printingInvoice = false);
     }
   }
 
@@ -132,8 +114,7 @@ class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
         ),
         title: Text(sale?.invoiceNumber ?? 'Sale'),
         actions: [
-          // A4 invoice
-          _downloadingInvoice
+          _printingInvoice
               ? const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12),
                   child: SizedBox(
@@ -143,24 +124,9 @@ class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
                   ),
                 )
               : IconButton(
-                  tooltip: 'Print A4 invoice',
+                  tooltip: 'Print tax invoice (${_paperType.label})',
                   icon: const Icon(Icons.picture_as_pdf_outlined),
                   onPressed: sale == null ? null : _printInvoice,
-                ),
-          // Till receipt
-          _downloadingReceipt
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              : IconButton(
-                  tooltip: 'Print receipt',
-                  icon: const Icon(Icons.receipt_outlined),
-                  onPressed: sale == null ? null : _printReceipt,
                 ),
           const SizedBox(width: 4),
         ],
@@ -303,51 +269,33 @@ class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
                       ),
                     ],
                     const SizedBox(height: AppSpacing.md),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppButton(
-                            label: 'A4 Invoice',
-                            variant: AppButtonVariant.secondary,
-                            leading: _downloadingInvoice
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.picture_as_pdf_outlined,
-                                    size: 16,
-                                  ),
-                            isLoading: _downloadingInvoice,
-                            onPressed: _downloadingInvoice
-                                ? null
-                                : _printInvoice,
+                    AppDropdownField<TaxInvoicePaperType>(
+                      label: 'Invoice paper format',
+                      value: _paperType,
+                      enabled: !_printingInvoice,
+                      items: [
+                        for (final paperType in TaxInvoicePaperType.values)
+                          DropdownMenuItem(
+                            value: paperType,
+                            child: Text(paperType.label),
                           ),
-                        ),
-                        const SizedBox(width: AppSpacing.smMd),
-                        Expanded(
-                          child: AppButton(
-                            label: 'Receipt',
-                            variant: AppButtonVariant.secondary,
-                            leading: _downloadingReceipt
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.receipt_outlined, size: 16),
-                            isLoading: _downloadingReceipt,
-                            onPressed: _downloadingReceipt
-                                ? null
-                                : _printReceipt,
-                          ),
-                        ),
                       ],
+                      onChanged: (paperType) {
+                        if (paperType != null) {
+                          setState(() => _paperType = paperType);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.smMd),
+                    AppButton.expanded(
+                      label: 'Print tax invoice',
+                      variant: AppButtonVariant.secondary,
+                      leading: const Icon(
+                        Icons.picture_as_pdf_outlined,
+                        size: 16,
+                      ),
+                      isLoading: _printingInvoice,
+                      onPressed: _printingInvoice ? null : _printInvoice,
                     ),
                   ],
                 ),

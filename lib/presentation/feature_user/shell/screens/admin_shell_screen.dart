@@ -25,6 +25,8 @@ const Map<String, String> _fallbackTitles = {
   Routes.purchases: 'Purchases',
   Routes.sales: 'Sales',
   Routes.pos: 'Point of Sale',
+  Routes.salesReports: 'Sales Reports',
+  Routes.settings: 'Mart Settings',
 };
 
 /// Shared layout for every admin-area screen (dashboard, staff, …): a

@@ -91,6 +91,10 @@ const Map<String, String> _menuKeyRoutes = {
   'SALES': Routes.sales,
   'ORDERS': Routes.sales,
   'INVOICES': Routes.sales,
+  'REPORTS': Routes.salesReports,
+  'SALES_REPORTS': Routes.salesReports,
+  'SETTINGS': Routes.settings,
+  'MART_SETTINGS': Routes.settings,
   'ACCOUNT': Routes.profile,
 };
 
@@ -121,6 +125,8 @@ const Set<String> _shellBranchPaths = {
   Routes.purchases,
   Routes.sales,
   Routes.pos,
+  Routes.salesReports,
+  Routes.settings,
 };
 
 bool isSidebarShellBranch(String path) => _shellBranchPaths.contains(path);
@@ -230,11 +236,7 @@ ResolvedSidebarEntry _resolveItem(SidebarItemModel item) {
       continue;
     }
     seenPaths.add(path);
-    children.add(ResolvedSidebarLink(
-      name: sub.name,
-      icon: null,
-      path: path,
-    ));
+    children.add(ResolvedSidebarLink(name: sub.name, icon: null, path: path));
   }
 
   final distinctChildPaths = children.map((c) => c.path).toSet();

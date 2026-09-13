@@ -103,13 +103,9 @@ class SaleDetailController extends Notifier<SaleDetailState> {
     }
   }
 
-  /// Fetches the A4 invoice PDF as raw bytes; throws [ApiException] on error.
-  Future<List<int>> downloadInvoice() =>
-      _dataSource.downloadInvoice(saleId);
-
-  /// Fetches the till-receipt PDF as raw bytes; throws [ApiException] on error.
-  Future<List<int>> downloadReceipt() =>
-      _dataSource.downloadReceipt(saleId);
+  /// Fetches the selected backend-rendered IRD tax invoice as PDF bytes.
+  Future<List<int>> downloadTaxInvoice(TaxInvoicePaperType paperType) =>
+      _dataSource.downloadTaxInvoice(saleId, paperType);
 
   /// A 401 means the session is dead — sign out everywhere rather than
   /// leaving this screen the only place that noticed. `routerProvider`'s

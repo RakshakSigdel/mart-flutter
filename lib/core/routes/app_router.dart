@@ -33,6 +33,8 @@ import '../../presentation/feature_user/purchases/screens/purchases_screen.dart'
 import '../../presentation/feature_user/sales/screens/sale_detail_screen.dart';
 import '../../presentation/feature_user/sales/screens/sale_form_screen.dart';
 import '../../presentation/feature_user/sales/screens/sales_screen.dart';
+import '../../presentation/feature_user/sales_reports/screens/sales_book_screen.dart';
+import '../../presentation/feature_user/settings/screens/mart_settings_screen.dart';
 import '../../presentation/feature_user/shell/screens/admin_shell_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_form_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_management_screen.dart';
@@ -83,7 +85,9 @@ bool _isAdminShellRoute(String location) =>
     location.startsWith(Routes.stock) ||
     location.startsWith(Routes.pos) ||
     location.startsWith(Routes.purchases) ||
-    location.startsWith(Routes.sales);
+    location.startsWith(Routes.sales) ||
+    location.startsWith(Routes.salesReports) ||
+    location.startsWith(Routes.settings);
 
 /// Whether [location] is part of the superadmin area — the mart list plus
 /// any page pushed on top of it (e.g. the create-mart form).
@@ -314,11 +318,30 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: Routes.pos,
                 name: 'pos',
+                pageBuilder: (context, state) => AppPageRoute.none(
+                  state,
+                  const SaleFormScreen(showAppBar: false),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.salesReports,
+                name: 'salesReports',
                 pageBuilder: (context, state) =>
-                    AppPageRoute.none(
-                      state,
-                      const SaleFormScreen(showAppBar: false),
-                    ),
+                    AppPageRoute.none(state, const SalesBookScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.settings,
+                name: 'settings',
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const MartSettingsScreen()),
               ),
             ],
           ),
@@ -468,8 +491,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.customerNew,
         name: 'customerNew',
-        pageBuilder: (context, state) =>
-            AppPageRoute.sharedAxisHorizontal(state, const CustomerFormScreen()),
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          const CustomerFormScreen(),
+        ),
       ),
       GoRoute(
         path: Routes.customerEditPath,

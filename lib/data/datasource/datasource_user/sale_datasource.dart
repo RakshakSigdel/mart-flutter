@@ -4,6 +4,7 @@ import '../../../core/network/api_exception.dart';
 import '../../models/models_shared/api_response.dart';
 import '../../models/models_shared/page_response.dart';
 import '../../models/models_user/sale_model.dart';
+import '../../models/models_user/sales_book_model.dart';
 
 /// The `/sales` endpoints — bills, the stock they move, and the payments
 /// taken against them.
@@ -39,7 +40,7 @@ class SaleRemoteDataSource {
           'size': size,
         },
       );
-      return _unwrap(
+      return await _unwrap(
         response.data,
         (raw) => PageResponse<SaleModel>.fromJson(
           raw as Map<String, dynamic>,
@@ -54,7 +55,7 @@ class SaleRemoteDataSource {
   Future<SaleDetailModel> getById(int id) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>('/sales/$id');
-      return _unwrap(
+      return await _unwrap(
         response.data,
         (raw) => SaleDetailModel.fromJson(raw as Map<String, dynamic>),
       );
@@ -72,10 +73,42 @@ class SaleRemoteDataSource {
           if (to != null) 'to': to.toUtc().toIso8601String(),
         },
       );
-      return _unwrap(
+      return await _unwrap(
         response.data,
         (raw) => SalesTotalsModel.fromJson(raw as Map<String, dynamic>),
       );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<SalesBookModel> salesBook(SalesBookQuery query) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/sales/sales-book',
+        queryParameters: query.toQueryParameters(),
+      );
+      return await _unwrap(
+        response.data,
+        (raw) => SalesBookModel.fromJson(raw as Map<String, dynamic>),
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Returns the backend-rendered IRD landscape A4 sales-book PDF.
+  Future<List<int>> downloadSalesBookPdf(SalesBookQuery query) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        '/sales/sales-book/pdf',
+        queryParameters: query.toQueryParameters(),
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Accept': 'application/pdf'},
+        ),
+      );
+      return response.data ?? [];
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -88,7 +121,7 @@ class SaleRemoteDataSource {
       final response = await _dio.get<Map<String, dynamic>>(
         '/sales/by-invoice/$invoiceNumber',
       );
-      return _unwrap(
+      return await _unwrap(
         response.data,
         (raw) => SaleDetailModel.fromJson(raw as Map<String, dynamic>),
       );
@@ -103,7 +136,7 @@ class SaleRemoteDataSource {
         '/sales',
         data: request.toJson(),
       );
-      return _unwrap(
+      return await _unwrap(
         response.data,
         (raw) => SaleDetailModel.fromJson(raw as Map<String, dynamic>),
       );
@@ -121,7 +154,7 @@ class SaleRemoteDataSource {
         '/sales/$id/payments',
         data: request.toJson(),
       );
-      return _unwrap(
+      return await _unwrap(
         response.data,
         (raw) => SaleDetailModel.fromJson(raw as Map<String, dynamic>),
       );
@@ -130,26 +163,19 @@ class SaleRemoteDataSource {
     }
   }
 
-  /// Downloads the A4 PDF invoice for [id] as raw bytes.
-  /// The caller is responsible for opening/printing the bytes.
-  Future<List<int>> downloadInvoice(int id) async {
+  /// Downloads the backend-rendered IRD tax invoice in [paperType].
+  Future<List<int>> downloadTaxInvoice(
+    int id,
+    TaxInvoicePaperType paperType,
+  ) async {
     try {
       final response = await _dio.get<List<int>>(
-        '/sales/$id/invoice',
-        options: Options(responseType: ResponseType.bytes),
-      );
-      return response.data ?? [];
-    } on DioException catch (e) {
-      throw ApiException.fromDioException(e);
-    }
-  }
-
-  /// Downloads the till-receipt PDF for [id] as raw bytes.
-  Future<List<int>> downloadReceipt(int id) async {
-    try {
-      final response = await _dio.get<List<int>>(
-        '/sales/$id/invoice/receipt',
-        options: Options(responseType: ResponseType.bytes),
+        '/sales/$id/tax-invoice',
+        queryParameters: {'paperType': paperType.apiValue},
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Accept': 'application/pdf'},
+        ),
       );
       return response.data ?? [];
     } on DioException catch (e) {

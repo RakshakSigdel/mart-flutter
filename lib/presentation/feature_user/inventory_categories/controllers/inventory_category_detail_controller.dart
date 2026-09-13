@@ -17,15 +17,20 @@ class InventoryCategoryDetailState {
     required this.isLoading,
     required this.error,
     required this.category,
+    required this.purchaseUnits,
+    required this.sellingUnits,
     required this.assignableUnits,
     required this.isAssigning,
     required this.busyUnitIds,
   });
 
-  factory InventoryCategoryDetailState.initial() => const InventoryCategoryDetailState(
+  factory InventoryCategoryDetailState.initial() =>
+      const InventoryCategoryDetailState(
         isLoading: true,
         error: null,
         category: null,
+        purchaseUnits: [],
+        sellingUnits: [],
         assignableUnits: [],
         isAssigning: false,
         busyUnitIds: {},
@@ -37,6 +42,10 @@ class InventoryCategoryDetailState {
 
   final String? error;
   final InventoryCategoryDetailModel? category;
+
+  /// Unit policies are fetched independently for each trade direction.
+  final List<InventoryUnitModel> purchaseUnits;
+  final List<InventoryUnitModel> sellingUnits;
 
   /// The mart's full unit dictionary, for the "add a unit" picker. Loaded
   /// lazily — see `InventoryCategoryDetailController.ensureAssignableUnitsLoaded`.
@@ -53,6 +62,8 @@ class InventoryCategoryDetailState {
     bool? isLoading,
     String? error,
     InventoryCategoryDetailModel? category,
+    List<InventoryUnitModel>? purchaseUnits,
+    List<InventoryUnitModel>? sellingUnits,
     List<InventoryUnitModel>? assignableUnits,
     bool? isAssigning,
     Set<int>? busyUnitIds,
@@ -61,6 +72,8 @@ class InventoryCategoryDetailState {
       isLoading: isLoading ?? this.isLoading,
       error: error,
       category: category ?? this.category,
+      purchaseUnits: purchaseUnits ?? this.purchaseUnits,
+      sellingUnits: sellingUnits ?? this.sellingUnits,
       assignableUnits: assignableUnits ?? this.assignableUnits,
       isAssigning: isAssigning ?? this.isAssigning,
       busyUnitIds: busyUnitIds ?? this.busyUnitIds,
@@ -74,7 +87,8 @@ class InventoryCategoryDetailState {
 /// One instance per category id — `categoryId` is fixed for the notifier's
 /// lifetime (see the `.family` provider below), so unlike the list
 /// controller this never needs to "switch" to a different category.
-class InventoryCategoryDetailController extends Notifier<InventoryCategoryDetailState> {
+class InventoryCategoryDetailController
+    extends Notifier<InventoryCategoryDetailState> {
   InventoryCategoryDetailController(this.categoryId);
 
   final int categoryId;
@@ -94,8 +108,23 @@ class InventoryCategoryDetailController extends Notifier<InventoryCategoryDetail
   Future<void> refresh() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final category = await _categoriesDataSource.getById(categoryId);
-      state = state.copyWith(isLoading: false, category: category);
+      final results = await Future.wait([
+        _categoriesDataSource.getById(categoryId),
+        _categoriesDataSource.unitsForUsage(
+          categoryId,
+          CategoryUnitUsage.purchase,
+        ),
+        _categoriesDataSource.unitsForUsage(
+          categoryId,
+          CategoryUnitUsage.selling,
+        ),
+      ]);
+      state = state.copyWith(
+        isLoading: false,
+        category: results[0] as InventoryCategoryDetailModel,
+        purchaseUnits: results[1] as List<InventoryUnitModel>,
+        sellingUnits: results[2] as List<InventoryUnitModel>,
+      );
     } on ApiException catch (e) {
       await _handleUnauthorized(e);
       state = state.copyWith(isLoading: false, error: e.message);
@@ -121,11 +150,11 @@ class InventoryCategoryDetailController extends Notifier<InventoryCategoryDetail
   Future<void> assignUnit(int unitId, CategoryUnitUsage usage) async {
     state = state.copyWith(isAssigning: true);
     try {
-      final category = await _categoriesDataSource.assignUnit(
+      await _categoriesDataSource.assignUnit(
         categoryId,
         AssignCategoryUnitRequest(unitId: unitId, usage: usage),
       );
-      state = state.copyWith(category: category);
+      await refresh();
     } on ApiException catch (e) {
       await _handleUnauthorized(e);
       rethrow;
@@ -137,14 +166,19 @@ class InventoryCategoryDetailController extends Notifier<InventoryCategoryDetail
   Future<String> withdrawUnit(int unitId) async {
     state = state.copyWith(busyUnitIds: {...state.busyUnitIds, unitId});
     try {
-      final message = await _categoriesDataSource.withdrawUnit(categoryId, unitId);
+      final message = await _categoriesDataSource.withdrawUnit(
+        categoryId,
+        unitId,
+      );
       await refresh();
       return message;
     } on ApiException catch (e) {
       await _handleUnauthorized(e);
       rethrow;
     } finally {
-      state = state.copyWith(busyUnitIds: {...state.busyUnitIds}..remove(unitId));
+      state = state.copyWith(
+        busyUnitIds: {...state.busyUnitIds}..remove(unitId),
+      );
     }
   }
 
@@ -164,6 +198,8 @@ class InventoryCategoryDetailController extends Notifier<InventoryCategoryDetail
 /// for why these screens don't keep session-scoped state alive past their
 /// watchers.
 final inventoryCategoryDetailControllerProvider = NotifierProvider.autoDispose
-    .family<InventoryCategoryDetailController, InventoryCategoryDetailState, int>(
-  InventoryCategoryDetailController.new,
-);
+    .family<
+      InventoryCategoryDetailController,
+      InventoryCategoryDetailState,
+      int
+    >(InventoryCategoryDetailController.new);

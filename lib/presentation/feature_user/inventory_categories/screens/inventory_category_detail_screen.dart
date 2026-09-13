@@ -23,37 +23,55 @@ class InventoryCategoryDetailScreen extends ConsumerWidget {
 
   final int categoryId;
 
-  Future<void> _editCategory(BuildContext context, WidgetRef ref, InventoryCategoryDetailModel category) async {
+  Future<void> _editCategory(
+    BuildContext context,
+    WidgetRef ref,
+    InventoryCategoryDetailModel category,
+  ) async {
     final result = await context.push<bool>(
       Routes.inventoryCategoryEdit(categoryId),
       extra: category.summary,
     );
     if (result == true) {
       if (context.mounted) AppSnackBar.success(context, 'Category updated.');
-      ref.read(inventoryCategoryDetailControllerProvider(categoryId).notifier).refresh();
+      ref
+          .read(inventoryCategoryDetailControllerProvider(categoryId).notifier)
+          .refresh();
     }
   }
 
-  Future<void> _addUnit(BuildContext context, WidgetRef ref, CategoryUnitUsage usage) async {
-    final notifier = ref.read(inventoryCategoryDetailControllerProvider(categoryId).notifier);
+  Future<void> _addUnit(
+    BuildContext context,
+    WidgetRef ref,
+    CategoryUnitUsage usage,
+  ) async {
+    final notifier = ref.read(
+      inventoryCategoryDetailControllerProvider(categoryId).notifier,
+    );
     await notifier.ensureAssignableUnitsLoaded();
     if (!context.mounted) return;
 
-    final state = ref.read(inventoryCategoryDetailControllerProvider(categoryId));
+    final state = ref.read(
+      inventoryCategoryDetailControllerProvider(categoryId),
+    );
     final category = state.category;
     if (category == null) return;
 
-    final existingIds = (usage == CategoryUnitUsage.purchase
-            ? category.purchaseUnits
-            : category.sellingUnits)
-        .map((u) => u.id)
-        .toSet();
-    final available =
-        state.assignableUnits.where((u) => !existingIds.contains(u.id)).toList();
+    final existingIds =
+        (usage == CategoryUnitUsage.purchase
+                ? state.purchaseUnits
+                : state.sellingUnits)
+            .map((u) => u.id)
+            .toSet();
+    final available = state.assignableUnits
+        .where((u) => !existingIds.contains(u.id))
+        .toList();
 
     final picked = await showAddCategoryUnitDialog(
       context,
-      title: usage == CategoryUnitUsage.purchase ? 'Add purchase unit' : 'Add selling unit',
+      title: usage == CategoryUnitUsage.purchase
+          ? 'Add purchase unit'
+          : 'Add selling unit',
       units: available,
     );
     if (picked == null || !context.mounted) return;
@@ -68,11 +86,16 @@ class InventoryCategoryDetailScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _withdrawUnit(BuildContext context, WidgetRef ref, InventoryUnitModel unit) async {
+  Future<void> _withdrawUnit(
+    BuildContext context,
+    WidgetRef ref,
+    InventoryUnitModel unit,
+  ) async {
     final confirmed = await showInventoryCategoryConfirmDialog(
       context,
       title: 'Withdraw unit',
-      message: 'Remove ${unit.name} (${unit.symbol}) from this category\'s unit policy?',
+      message:
+          'Remove ${unit.name} (${unit.symbol}) from this category\'s unit policy?',
       confirmLabel: 'Withdraw',
       destructive: true,
     );
@@ -95,7 +118,9 @@ class InventoryCategoryDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(inventoryCategoryDetailControllerProvider(categoryId));
+    final state = ref.watch(
+      inventoryCategoryDetailControllerProvider(categoryId),
+    );
     final category = state.category;
 
     return Scaffold(
@@ -130,8 +155,11 @@ class InventoryCategoryDetailScreen extends ConsumerWidget {
     if (state.error != null && category == null) {
       return AppEmptyState.error(
         message: state.error,
-        onAction: () =>
-            ref.read(inventoryCategoryDetailControllerProvider(categoryId).notifier).refresh(),
+        onAction: () => ref
+            .read(
+              inventoryCategoryDetailControllerProvider(categoryId).notifier,
+            )
+            .refresh(),
       );
     }
 
@@ -149,7 +177,10 @@ class InventoryCategoryDetailScreen extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    InventoryCategoryThumbnail(imageUrl: category.image, size: 64),
+                    InventoryCategoryThumbnail(
+                      imageUrl: category.image,
+                      size: 64,
+                    ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Column(
@@ -161,8 +192,9 @@ class InventoryCategoryDetailScreen extends ConsumerWidget {
                             const SizedBox(height: AppSpacing.xs),
                             Text(
                               category.description!,
-                              style: AppTypography.bodySmall
-                                  .copyWith(color: AppColors.textMuted),
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.textMuted,
+                              ),
                             ),
                           ],
                           const SizedBox(height: AppSpacing.smMd),
@@ -181,7 +213,7 @@ class InventoryCategoryDetailScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.md),
               InventoryCategoryUnitSection(
                 title: 'Purchase units',
-                units: category.purchaseUnits,
+                units: state.purchaseUnits,
                 busyUnitIds: state.busyUnitIds,
                 onAdd: () => _addUnit(context, ref, CategoryUnitUsage.purchase),
                 onWithdraw: (unit) => _withdrawUnit(context, ref, unit),
@@ -189,7 +221,7 @@ class InventoryCategoryDetailScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.md),
               InventoryCategoryUnitSection(
                 title: 'Selling units',
-                units: category.sellingUnits,
+                units: state.sellingUnits,
                 busyUnitIds: state.busyUnitIds,
                 onAdd: () => _addUnit(context, ref, CategoryUnitUsage.selling),
                 onWithdraw: (unit) => _withdrawUnit(context, ref, unit),

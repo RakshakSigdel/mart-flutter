@@ -25,6 +25,7 @@ class SalesToolbar extends StatelessWidget {
     required this.fromFilter,
     required this.toFilter,
     required this.onDateRangeChanged,
+    required this.onFindInvoicePressed,
     required this.onAddPressed,
   });
 
@@ -36,6 +37,7 @@ class SalesToolbar extends StatelessWidget {
   final DateTime? fromFilter;
   final DateTime? toFilter;
   final void Function(DateTime? from, DateTime? to) onDateRangeChanged;
+  final VoidCallback onFindInvoicePressed;
   final VoidCallback onAddPressed;
 
   static const _statusItems = <DropdownMenuItem<PaymentStatus?>>[
@@ -94,6 +96,13 @@ class SalesToolbar extends StatelessWidget {
       onPressed: onAddPressed,
     );
 
+    final findInvoiceButton = AppButton(
+      label: 'Find invoice',
+      variant: AppButtonVariant.secondary,
+      leading: const Icon(Icons.receipt_long_outlined),
+      onPressed: onFindInvoicePressed,
+    );
+
     if (isWide) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -104,6 +113,8 @@ class SalesToolbar extends StatelessWidget {
               Expanded(child: search),
               const SizedBox(width: AppSpacing.smMd),
               SizedBox(width: 180, child: statusField),
+              const SizedBox(width: AppSpacing.smMd),
+              findInvoiceButton,
               const SizedBox(width: AppSpacing.smMd),
               addButton,
             ],
@@ -134,6 +145,8 @@ class SalesToolbar extends StatelessWidget {
             Expanded(child: toField),
           ],
         ),
+        const SizedBox(height: AppSpacing.smMd),
+        findInvoiceButton,
         const SizedBox(height: AppSpacing.smMd),
         addButton,
       ],

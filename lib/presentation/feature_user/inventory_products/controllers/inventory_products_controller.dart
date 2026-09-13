@@ -42,23 +42,23 @@ class InventoryProductsState {
   });
 
   factory InventoryProductsState.initial() => const InventoryProductsState(
-        products: [],
-        isLoading: true,
-        error: null,
-        search: '',
-        categoryFilter: null,
-        activeFilter: null,
-        // The backend's pages are 1-indexed (page 1 is the first page) —
-        // see the fix applied across every other list controller.
-        pageNumber: 1,
-        pageSize: 20,
-        totalPages: 0,
-        totalElements: 0,
-        isLast: true,
-        busyIds: {},
-        categoryOptions: [],
-        unitOptions: [],
-      );
+    products: [],
+    isLoading: true,
+    error: null,
+    search: '',
+    categoryFilter: null,
+    activeFilter: null,
+    // The backend's pages are 1-indexed (page 1 is the first page) —
+    // see the fix applied across every other list controller.
+    pageNumber: 1,
+    pageSize: 20,
+    totalPages: 0,
+    totalElements: 0,
+    isLast: true,
+    busyIds: {},
+    categoryOptions: [],
+    unitOptions: [],
+  );
 
   final List<ProductModel> products;
 
@@ -121,10 +121,12 @@ class InventoryProductsState {
       isLoading: isLoading ?? this.isLoading,
       error: identical(error, _unset) ? this.error : error as String?,
       search: search ?? this.search,
-      categoryFilter:
-          identical(categoryFilter, _unset) ? this.categoryFilter : categoryFilter as int?,
-      activeFilter:
-          identical(activeFilter, _unset) ? this.activeFilter : activeFilter as bool?,
+      categoryFilter: identical(categoryFilter, _unset)
+          ? this.categoryFilter
+          : categoryFilter as int?,
+      activeFilter: identical(activeFilter, _unset)
+          ? this.activeFilter
+          : activeFilter as bool?,
       pageNumber: pageNumber ?? this.pageNumber,
       pageSize: pageSize ?? this.pageSize,
       totalPages: totalPages ?? this.totalPages,
@@ -224,7 +226,9 @@ class InventoryProductsController extends Notifier<InventoryProductsState> {
   /// worth a screen-level error over.
   Future<void> _loadCategoryOptions() async {
     try {
-      final categories = await ref.read(inventoryCategoriesRemoteDataSourceProvider).selection();
+      final categories = await ref
+          .read(inventoryCategoriesRemoteDataSourceProvider)
+          .selection();
       state = state.copyWith(categoryOptions: categories);
     } on ApiException {
       // Swallowed — see doc comment above.
@@ -239,7 +243,9 @@ class InventoryProductsController extends Notifier<InventoryProductsState> {
   Future<void> ensureUnitOptionsLoaded() async {
     if (state.unitOptions.isNotEmpty) return;
     try {
-      final units = await ref.read(inventoryUnitsRemoteDataSourceProvider).selection();
+      final units = await ref
+          .read(inventoryUnitsRemoteDataSourceProvider)
+          .selection();
       state = state.copyWith(unitOptions: units);
     } on ApiException {
       // Swallowed — the picker just shows an empty list if this never
@@ -258,7 +264,10 @@ class InventoryProductsController extends Notifier<InventoryProductsState> {
     }
   }
 
-  Future<ProductModel> updateProduct(int id, UpdateProductRequest request) async {
+  Future<ProductModel> updateProduct(
+    int id,
+    UpdateProductRequest request,
+  ) async {
     try {
       final product = await _dataSource.update(id, request);
       await refresh();
@@ -274,10 +283,21 @@ class InventoryProductsController extends Notifier<InventoryProductsState> {
   /// list is also refreshed so its row reflects the new status once this
   /// completes.
   Future<String> retireProduct(int id) => _withBusy(id, () async {
-        final message = await _dataSource.retire(id);
-        await refresh();
-        return message;
-      });
+    final message = await _dataSource.retire(id);
+    await refresh();
+    return message;
+  });
+
+  /// Resolves a scanned barcode to the selling-unit configuration used by
+  /// the till. The catalogue exposes it as a quick lookup as well.
+  Future<ProductSellingUnitModel> findByBarcode(String barcode) async {
+    try {
+      return await _dataSource.getByBarcode(barcode.trim());
+    } on ApiException catch (e) {
+      await _handleUnauthorized(e);
+      rethrow;
+    }
+  }
 
   Future<T> _withBusy<T>(int id, Future<T> Function() action) async {
     state = state.copyWith(busyIds: {...state.busyIds, id});
@@ -307,6 +327,7 @@ class InventoryProductsController extends Notifier<InventoryProductsState> {
 /// `inventoryCategoriesControllerProvider` for the same reasoning (and the
 /// bug it was fixing).
 final inventoryProductsControllerProvider =
-    NotifierProvider.autoDispose<InventoryProductsController, InventoryProductsState>(
-  InventoryProductsController.new,
-);
+    NotifierProvider.autoDispose<
+      InventoryProductsController,
+      InventoryProductsState
+    >(InventoryProductsController.new);
