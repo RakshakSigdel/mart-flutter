@@ -78,6 +78,7 @@ String _landingRouteFor(AuthSessionModel session) =>
 /// itself plus any page pushed on top of it (e.g. the hire-staff form).
 /// Superadmins are confined out of all of them, not just `/dashboard`.
 bool _isAdminShellRoute(String location) =>
+    location == Routes.profile ||
     location == Routes.dashboard ||
     location.startsWith(Routes.staff) ||
     location.startsWith(Routes.inventory) ||
@@ -176,8 +177,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       // AppBar, so it's a full page outside both the shell and the
       // superadmin area rather than a branch of one of them.
       GoRoute(
-        path: Routes.profile,
-        name: 'profile',
+        path: Routes.superadminProfile,
+        name: 'superadminProfile',
         pageBuilder: (context, state) =>
             AppPageRoute.sharedAxisHorizontal(state, const ProfileScreen()),
       ),
@@ -204,6 +205,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Branch order here is otherwise unconstrained — the sidebar
           // navigates by path (`context.go`), not branch index, so it
           // doesn't need to match whatever order `/me/sidebar` returns.
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.profile,
+                name: 'profile',
+                pageBuilder: (context, state) => AppPageRoute.none(
+                  state,
+                  const ProfileScreen(inAdminShell: true),
+                ),
+              ),
+            ],
+          ),
           StatefulShellBranch(
             routes: [
               GoRoute(

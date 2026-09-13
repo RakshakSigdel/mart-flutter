@@ -150,10 +150,7 @@ class _AppTextFieldState extends State<AppTextField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label!,
-          style: AppTypography.labelSmall.copyWith(fontSize: 13),
-        ),
+        Text(widget.label!, style: AppTypography.fieldLabel),
         const SizedBox(height: AppSpacing.sm),
         field,
       ],
@@ -165,9 +162,7 @@ class _AppTextFieldState extends State<AppTextField> {
       return IconButton(
         onPressed: () => setState(() => _obscured = !_obscured),
         icon: Icon(
-          _obscured
-              ? Icons.visibility_outlined
-              : Icons.visibility_off_outlined,
+          _obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
           size: 20,
         ),
         tooltip: _obscured ? 'Show' : 'Hide',

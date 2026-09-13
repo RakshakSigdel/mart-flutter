@@ -40,7 +40,9 @@ String _formatDate(DateTime? date) {
 /// detail screen in this app: there's real content here, not a couple of
 /// menu items.
 class ProfileScreen extends ConsumerStatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.inAdminShell = false});
+
+  final bool inAdminShell;
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
@@ -75,6 +77,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(profileControllerProvider);
     final profile = state.profile;
+    if (widget.inAdminShell) {
+      return _buildBody(context, ref, state, profile);
+    }
     final authState = ref.watch(authControllerProvider);
     final session = authState is AuthAuthenticated ? authState.session : null;
     final sidebarState = ref.watch(sidebarControllerProvider);

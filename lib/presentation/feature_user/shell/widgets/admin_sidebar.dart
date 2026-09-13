@@ -343,7 +343,13 @@ class _SidebarGroupState extends State<_SidebarGroup> {
                   Expanded(
                     child: Text(
                       widget.label,
-                      style: AppTypography.label.copyWith(color: foreground),
+                      style: AppTypography.label.copyWith(
+                        color: foreground,
+                        fontWeight: widget.containsSelected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        height: 1.25,
+                      ),
                     ),
                   ),
                   AnimatedRotation(
@@ -424,7 +430,13 @@ class _SidebarTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       label,
-                      style: AppTypography.label.copyWith(color: foreground),
+                      style: AppTypography.label.copyWith(
+                        color: foreground,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        height: 1.25,
+                      ),
                     ),
                   ),
                 ],

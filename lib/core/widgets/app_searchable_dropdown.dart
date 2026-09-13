@@ -30,10 +30,11 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
   final T? selectedItem;
   final List<T>? items;
   final Future<List<T>> Function(String)? asyncItems;
+
   /// Paginated async loader: called with (filter, page, pageSize).
   /// Use this instead of [asyncItems] to enable infinite scroll.
   final Future<List<T>> Function(String filter, int page, int pageSize)?
-      pagedAsyncItems;
+  pagedAsyncItems;
   final int pageSize;
   final ValueChanged<T?> onChanged;
   final String Function(T) itemLabel;
@@ -75,12 +76,7 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
       children: [
         // Optional label
         if (label != null) ...[
-          Text(
-            label!,
-            style: AppTypography.bodySmall.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(label!, style: AppTypography.fieldLabel),
           const SizedBox(height: 8),
         ],
 
@@ -106,9 +102,10 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
           onSelected: onChanged,
           itemAsString: itemLabel,
           // Only apply local filter when using a static list
-          filterFn: (items != null && asyncItems == null && pagedAsyncItems == null)
+          filterFn:
+              (items != null && asyncItems == null && pagedAsyncItems == null)
               ? (item, filter) =>
-                  itemLabel(item).toLowerCase().contains(filter.toLowerCase())
+                    itemLabel(item).toLowerCase().contains(filter.toLowerCase())
               : null,
           compareFn: (a, b) => itemLabel(a) == itemLabel(b),
           validator: validator,
@@ -126,7 +123,7 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
               ),
               border: _border(AppColors.border),
               enabledBorder: _border(AppColors.border),
-              focusedBorder: _border(AppColors.primary),
+              focusedBorder: _border(AppColors.primaryDeep),
               errorBorder: _border(AppColors.error),
               filled: true,
               fillColor: AppColors.card,
@@ -159,7 +156,7 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
                 ),
                 border: _border(AppColors.border),
                 enabledBorder: _border(AppColors.border),
-                focusedBorder: _border(AppColors.primary),
+                focusedBorder: _border(AppColors.primaryDeep),
                 filled: true,
                 fillColor: AppColors.card,
               ),

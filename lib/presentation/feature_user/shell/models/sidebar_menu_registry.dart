@@ -104,7 +104,7 @@ const Map<String, String> _menuKeyRoutes = {
 /// same "tab-like" behavior as clicking between Dashboard/Units/Staff/…
 /// always had.
 ///
-/// A resolved path *not* in this set (e.g. [Routes.profile], or
+/// A resolved path *not* in this set (e.g. [Routes.notFound] for
 /// [Routes.notFound] for a menu item this build doesn't implement yet) is
 /// a full page that lives outside the shell entirely, with nothing else to
 /// preserve underneath it — it belongs on top of the stack
@@ -112,6 +112,7 @@ const Map<String, String> _menuKeyRoutes = {
 /// something to return to, the same way [ProfileAvatarButton] used to
 /// reach it before the sidebar took over that job.
 const Set<String> _shellBranchPaths = {
+  Routes.profile,
   Routes.dashboard,
   Routes.inventoryUnits,
   Routes.inventoryCategories,

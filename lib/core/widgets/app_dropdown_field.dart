@@ -61,7 +61,7 @@ class AppDropdownField<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label!, style: AppTypography.labelSmall.copyWith(fontSize: 13)),
+        Text(label!, style: AppTypography.fieldLabel),
         const SizedBox(height: AppSpacing.sm),
         field,
       ],

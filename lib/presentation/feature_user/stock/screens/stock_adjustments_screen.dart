@@ -31,8 +31,7 @@ class _StockAdjustmentsScreenState
   StockLevelModel? _product;
   InventoryUnitModel? _unit;
   List<InventoryUnitModel> _unitOptions = const [];
-  StockAdjustmentMovementType _movementType =
-      StockAdjustmentMovementType.adjustmentIn;
+  StockMovementType _movementType = StockMovementType.adjustmentIn;
   bool _loadingUnits = false;
   bool _submitting = false;
   String? _errorMessage;
@@ -110,7 +109,7 @@ class _StockAdjustmentsScreenState
               productId: product.productId,
               quantity: quantity,
               unitId: unit.id,
-              adjustmentType: _movementType,
+              movementType: _movementType,
               remark: _remarkController.text.trim().isEmpty
                   ? null
                   : _remarkController.text.trim(),
@@ -183,46 +182,23 @@ class _StockAdjustmentsScreenState
                       ),
                     ],
                     const SizedBox(height: AppSpacing.lg),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppButton(
-                            label: 'Increase',
-                            variant:
-                                _movementType ==
-                                    StockAdjustmentMovementType.adjustmentIn
-                                ? AppButtonVariant.primary
-                                : AppButtonVariant.secondary,
-                            leading: const Icon(Icons.add_rounded, size: 16),
-                            onPressed: _submitting
-                                ? null
-                                : () => setState(
-                                    () => _movementType =
-                                        StockAdjustmentMovementType
-                                            .adjustmentIn,
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.smMd),
-                        Expanded(
-                          child: AppButton(
-                            label: 'Decrease',
-                            variant:
-                                _movementType ==
-                                    StockAdjustmentMovementType.adjustmentOut
-                                ? AppButtonVariant.primary
-                                : AppButtonVariant.secondary,
-                            leading: const Icon(Icons.remove_rounded, size: 16),
-                            onPressed: _submitting
-                                ? null
-                                : () => setState(
-                                    () => _movementType =
-                                        StockAdjustmentMovementType
-                                            .adjustmentOut,
-                                  ),
-                          ),
-                        ),
-                      ],
+                    AppDropdownField<StockMovementType>(
+                      label: 'Movement type',
+                      value: _movementType,
+                      items: StockMovementType.values
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(formatMovementType(type.apiValue)),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (type) {
+                        if (type != null && !_submitting) {
+                          setState(() => _movementType = type);
+                        }
+                      },
+                      enabled: !_submitting,
                     ),
                     const SizedBox(height: AppSpacing.md),
                     if (_loadingUnits)

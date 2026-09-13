@@ -36,7 +36,7 @@ class AppColors {
   static const Color background = Color(0xFFFFFFFF);
 
   /// Surface — cards, section backgrounds, containers on top of background
-  static const Color surface = Color(0xFFF6F5F1);
+  static const Color surface = Color(0xFFF7F7F4);
 
   /// Surface sunken — inputs, wells, inset regions
   static const Color surfaceSunken = Color(0xFFEFEDE7);
@@ -70,7 +70,7 @@ class AppColors {
   static const Color textSecondary = Color(0xFF3D3D3D);
 
   /// Muted text — hints, placeholders, timestamps
-  static const Color textMuted = Color(0xFF8C8A84);
+  static const Color textMuted = Color(0xFF73736C);
 
   /// Inverse text — white, used on dark/black surfaces
   static const Color textInverse = Color(0xFFFFFFFF);
@@ -82,7 +82,7 @@ class AppColors {
   // ─── Borders & Dividers ───────────────────────────────────────────────────
 
   /// Default border
-  static const Color border = Color(0xFFE6E3DB);
+  static const Color border = Color(0xFFE7E7E0);
 
   /// Strong border — used for emphasis, dividers between sections
   static const Color borderStrong = Color(0xFFD0CDC3);

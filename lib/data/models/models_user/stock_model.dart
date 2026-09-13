@@ -136,8 +136,7 @@ String formatMovementType(String? value) => formatSnakeCaseLabel(value);
 
 /// Movement values accepted by the stock API. [direction] documents the
 /// resulting on-hand change: positive values add stock and negative values
-/// remove it. Only [adjustmentIn] and [adjustmentOut] are valid for
-/// `POST /stock/adjustments`.
+/// remove it.
 enum StockMovementType {
   purchaseIn('PURCHASE_IN', 1),
   saleOut('SALE_OUT', -1),
@@ -151,16 +150,6 @@ enum StockMovementType {
 
   final String apiValue;
   final int direction;
-}
-
-/// The only movement types accepted by `POST /stock/adjustments`.
-enum StockAdjustmentMovementType {
-  adjustmentIn(StockMovementType.adjustmentIn),
-  adjustmentOut(StockMovementType.adjustmentOut);
-
-  const StockAdjustmentMovementType(this.movementType);
-
-  final StockMovementType movementType;
 }
 
 /// One entry in a product's movement ledger — what `/stock/movements`
@@ -233,8 +222,7 @@ class StockMovementModel {
 /// Body of both `POST /stock/write-offs` and `POST /stock/adjustments` —
 /// identical shape, same reasoning as `UpsertInventoryUnitRequest`.
 ///
-/// [movementType] is strongly typed to the documented API values. The
-/// adjustment constructor accepts only its two valid correction values.
+/// [movementType] is strongly typed to the documented API values.
 class RecordStockMovementRequest {
   const RecordStockMovementRequest({
     required this.productId,
@@ -258,18 +246,18 @@ class RecordStockMovementRequest {
          remark: remark,
        );
 
-  /// A correction after a physical count, in either direction.
+  /// Records a stock movement using any movement type accepted by the API.
   RecordStockMovementRequest.adjustment({
     required int productId,
     required double quantity,
     required int unitId,
-    required StockAdjustmentMovementType adjustmentType,
+    required StockMovementType movementType,
     String? remark,
   }) : this(
          productId: productId,
          quantity: quantity,
          unitId: unitId,
-         movementType: adjustmentType.movementType,
+         movementType: movementType,
          remark: remark,
        );
 

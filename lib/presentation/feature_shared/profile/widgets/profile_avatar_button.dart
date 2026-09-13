@@ -6,7 +6,7 @@ import '../../../../core/core.dart';
 import '../../auth/controller/auth_controller.dart';
 
 /// The signed-in user's initial, as a small tappable circle — the gateway
-/// to [Routes.profile] from a top-level `AppBar` that has no sidebar of its
+/// to [Routes.superadminProfile] from a top-level `AppBar` that has no sidebar of its
 /// own to carry an "Account" link instead (today: only the superadmin
 /// area's own screen — the mart-admin shell's sidebar handles this job for
 /// every other role, see `SidebarController`/`AdminSidebar`).
@@ -29,7 +29,7 @@ class ProfileAvatarButton extends ConsumerWidget {
           shape: const CircleBorder(),
           child: InkWell(
             customBorder: const CircleBorder(),
-            onTap: () => context.push(Routes.profile),
+            onTap: () => context.push(Routes.superadminProfile),
             child: Container(
               width: 36,
               height: 36,

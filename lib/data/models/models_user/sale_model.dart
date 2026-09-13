@@ -87,8 +87,8 @@ class SaleModel {
 }
 
 /// One bill in full — customer details and every line item. What
-/// `GET /sales/{id}`, `GET /sales/by-invoice/{invoiceNumber}`,
-/// `POST /sales` and `POST /sales/{id}/payments` all return.
+/// `GET /sales/{id}`, `POST /sales` and `POST /sales/{id}/payments` all
+/// return.
 class SaleDetailModel {
   const SaleDetailModel({
     required this.id,

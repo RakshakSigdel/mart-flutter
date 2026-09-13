@@ -13,6 +13,7 @@ import '../widgets/admin_sidebar.dart';
 /// omits an item for a page the user reached by direct URL. Keyed by the
 /// same paths `AppRouter` registers as shell branches.
 const Map<String, String> _fallbackTitles = {
+  Routes.profile: 'My Account',
   Routes.dashboard: 'Dashboard',
   Routes.inventoryUnits: 'Units',
   Routes.inventoryCategories: 'Categories',

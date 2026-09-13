@@ -120,6 +120,7 @@ class AppTheme {
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
+        shape: const Border(bottom: BorderSide(color: AppColors.border)),
         iconTheme: const IconThemeData(color: AppColors.iconActive, size: 22),
         actionsIconTheme: const IconThemeData(
           color: AppColors.iconActive,
@@ -158,6 +159,33 @@ class AppTheme {
         space: 1,
       ),
 
+      // Shared styling for directory, transaction and report tables.
+      dataTableTheme: DataTableThemeData(
+        headingRowHeight: 48,
+        dataRowMinHeight: 56,
+        dataRowMaxHeight: 72,
+        dividerThickness: 0.5,
+        headingRowColor: const WidgetStatePropertyAll(AppColors.surface),
+        headingTextStyle: AppTypography.labelSmall,
+        dataTextStyle: AppTypography.bodySmall.copyWith(
+          color: AppColors.textPrimary,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+        dataRowColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.primarySoft;
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return AppColors.surface;
+          }
+          return AppColors.card;
+        }),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.border),
+          borderRadius: AppBorderRadius.radiusMD,
+        ),
+      ),
+
       // ─── Input / TextField ──────────────────────────────────────────────
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -188,7 +216,7 @@ class AppTheme {
         border: _inputBorder(AppColors.border),
         enabledBorder: _inputBorder(AppColors.border),
         disabledBorder: _inputBorder(AppColors.border),
-        focusedBorder: _inputBorder(AppColors.primary, width: 1.5),
+        focusedBorder: _inputBorder(AppColors.primaryDeep, width: 1.5),
         errorBorder: _inputBorder(AppColors.error),
         focusedErrorBorder: _inputBorder(AppColors.error, width: 1.5),
       ),
@@ -500,7 +528,7 @@ class AppTheme {
       popupMenuTheme: PopupMenuThemeData(
         color: AppColors.card,
         surfaceTintColor: Colors.transparent,
-        elevation: 8,
+        elevation: 3,
         shape: RoundedRectangleBorder(
           borderRadius: AppBorderRadius.radiusL,
           side: const BorderSide(color: AppColors.border),

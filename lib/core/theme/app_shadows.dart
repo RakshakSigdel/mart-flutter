@@ -12,9 +12,9 @@ class AppShadows {
   /// Card shadow — subtle, used on [AppCard]
   static final List<BoxShadow> card = [
     BoxShadow(
-      color: AppColors.textPrimary.withValues(alpha: 0.06),
-      blurRadius: 32,
-      offset: const Offset(0, 12),
+      color: AppColors.textPrimary.withValues(alpha: 0.035),
+      blurRadius: 16,
+      offset: const Offset(0, 4),
     ),
   ];
 
@@ -30,9 +30,9 @@ class AppShadows {
   /// Button shadow — yellow-tinted glow for primary buttons
   static final List<BoxShadow> button = [
     BoxShadow(
-      color: AppColors.primary.withValues(alpha: 0.32),
-      blurRadius: 16,
-      offset: const Offset(0, 6),
+      color: AppColors.primaryDeep.withValues(alpha: 0.12),
+      blurRadius: 8,
+      offset: const Offset(0, 2),
     ),
   ];
 

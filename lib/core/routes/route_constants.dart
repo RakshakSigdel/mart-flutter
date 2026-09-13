@@ -175,6 +175,8 @@ class Routes {
   //-----------Superadmin---------------
   static const String adminManagement = '/admin/management';
 
+  static const String superadminProfile = '$adminManagement/profile';
+
   /// The create-mart form, as its own page — see [staffNew] for why.
   static const String adminNew = '/admin/management/new';
 

@@ -238,17 +238,6 @@ class SalesController extends Notifier<SalesState> {
     }
   }
 
-  /// Opens a bill by its exact printed number, independently of the current
-  /// page and filters in the sales history.
-  Future<SaleDetailModel> findByInvoiceNumber(String invoiceNumber) async {
-    try {
-      return await _dataSource.getByInvoiceNumber(invoiceNumber.trim());
-    } on ApiException catch (e) {
-      await _handleUnauthorized(e);
-      rethrow;
-    }
-  }
-
   /// A 401 means the session is dead — sign out everywhere rather than
   /// leaving this screen the only place that noticed. `routerProvider`'s
   /// redirect reacts to the resulting state change and sends the user back

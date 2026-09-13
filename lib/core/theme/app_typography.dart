@@ -18,6 +18,14 @@ class AppTypography {
   /// style below and the whole [ThemeData] follow along automatically.
   static const String? fontFamily = null;
 
+  /// Consistent external labels for text inputs and both dropdown styles.
+  static const TextStyle fieldLabel = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+    color: AppColors.textSecondary,
+  );
+
   // ─── Display ──────────────────────────────────────────────────────────────
 
   /// 32px / ExtraBold — page hero titles

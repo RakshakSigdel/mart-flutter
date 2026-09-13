@@ -116,20 +116,6 @@ class SaleRemoteDataSource {
 
   /// Not used by any screen today — implemented for completeness, same
   /// reasoning as the unpaged `/selection` endpoints elsewhere.
-  Future<SaleDetailModel> getByInvoiceNumber(String invoiceNumber) async {
-    try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        '/sales/by-invoice/$invoiceNumber',
-      );
-      return await _unwrap(
-        response.data,
-        (raw) => SaleDetailModel.fromJson(raw as Map<String, dynamic>),
-      );
-    } on DioException catch (e) {
-      throw ApiException.fromDioException(e);
-    }
-  }
-
   Future<SaleDetailModel> create(CreateSaleRequest request) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
