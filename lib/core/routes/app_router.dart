@@ -39,6 +39,7 @@ import '../../presentation/feature_user/shell/screens/admin_shell_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_form_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_management_screen.dart';
 import '../../presentation/feature_user/stock/screens/stock_detail_screen.dart';
+import '../../presentation/feature_user/stock/screens/stock_adjustments_screen.dart';
 import '../../presentation/feature_user/stock/screens/stock_screen.dart';
 import '../../presentation/feature_user/vendors/screens/vendor_detail_screen.dart';
 import '../../presentation/feature_user/vendors/screens/vendor_form_screen.dart';
@@ -289,7 +290,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: Routes.stockAdjustments,
                 name: 'stockAdjustments',
                 pageBuilder: (context, state) =>
-                    AppPageRoute.none(state, const StockScreen()),
+                    AppPageRoute.none(state, const StockAdjustmentsScreen()),
               ),
             ],
           ),

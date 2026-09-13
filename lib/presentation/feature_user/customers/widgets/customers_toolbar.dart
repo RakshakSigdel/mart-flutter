@@ -9,14 +9,12 @@ class CustomersToolbar extends StatelessWidget {
     required this.searchController,
     required this.onSearchChanged,
     required this.onSearchSubmitted,
-    required this.onFindPhonePressed,
     required this.onAddPressed,
   });
 
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onSearchSubmitted;
-  final VoidCallback onFindPhonePressed;
   final VoidCallback onAddPressed;
 
   @override
@@ -26,7 +24,7 @@ class CustomersToolbar extends StatelessWidget {
 
     final search = AppTextField(
       controller: searchController,
-      hint: 'Search by name, phone or email',
+      hint: 'Search by name or email',
       prefixIcon: Icons.search,
       textInputAction: TextInputAction.search,
       onChanged: onSearchChanged,
@@ -39,20 +37,11 @@ class CustomersToolbar extends StatelessWidget {
       onPressed: onAddPressed,
     );
 
-    final findPhoneButton = AppButton(
-      label: 'Find phone',
-      variant: AppButtonVariant.secondary,
-      leading: const Icon(Icons.phone_outlined),
-      onPressed: onFindPhonePressed,
-    );
-
     if (isWide) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: search),
-          const SizedBox(width: AppSpacing.smMd),
-          findPhoneButton,
           const SizedBox(width: AppSpacing.smMd),
           addButton,
         ],
@@ -63,8 +52,6 @@ class CustomersToolbar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         search,
-        const SizedBox(height: AppSpacing.smMd),
-        findPhoneButton,
         const SizedBox(height: AppSpacing.smMd),
         addButton,
       ],

@@ -134,6 +134,35 @@ enum StockReferenceType {
 /// of risking silently dropping a value a closed enum doesn't recognize.
 String formatMovementType(String? value) => formatSnakeCaseLabel(value);
 
+/// Movement values accepted by the stock API. [direction] documents the
+/// resulting on-hand change: positive values add stock and negative values
+/// remove it. Only [adjustmentIn] and [adjustmentOut] are valid for
+/// `POST /stock/adjustments`.
+enum StockMovementType {
+  purchaseIn('PURCHASE_IN', 1),
+  saleOut('SALE_OUT', -1),
+  saleReturnIn('SALE_RETURN_IN', 1),
+  purchaseReturnOut('PURCHASE_RETURN_OUT', -1),
+  adjustmentIn('ADJUSTMENT_IN', 1),
+  adjustmentOut('ADJUSTMENT_OUT', -1),
+  writeOff('WRITE_OFF', -1);
+
+  const StockMovementType(this.apiValue, this.direction);
+
+  final String apiValue;
+  final int direction;
+}
+
+/// The only movement types accepted by `POST /stock/adjustments`.
+enum StockAdjustmentMovementType {
+  adjustmentIn(StockMovementType.adjustmentIn),
+  adjustmentOut(StockMovementType.adjustmentOut);
+
+  const StockAdjustmentMovementType(this.movementType);
+
+  final StockMovementType movementType;
+}
+
 /// One entry in a product's movement ledger — what `/stock/movements`
 /// lists, and what a write-off/adjustment returns.
 class StockMovementModel {
@@ -204,13 +233,8 @@ class StockMovementModel {
 /// Body of both `POST /stock/write-offs` and `POST /stock/adjustments` —
 /// identical shape, same reasoning as `UpsertInventoryUnitRequest`.
 ///
-/// `movementType` isn't user-chosen free text — the two named
-/// constructors set it to the one value each endpoint actually expects
-/// (best-effort: the backend doesn't publish a closed list, only the
-/// `PURCHASE_IN` example on the movement-ledger response, so these follow
-/// that same `<REASON>_<DIRECTION>` shape, and adjustment's own two
-/// directions rather than a raw string) — see `stock_movement_dialog.dart`
-/// for where a wrong guess would need correcting.
+/// [movementType] is strongly typed to the documented API values. The
+/// adjustment constructor accepts only its two valid correction values.
 class RecordStockMovementRequest {
   const RecordStockMovementRequest({
     required this.productId,
@@ -230,36 +254,36 @@ class RecordStockMovementRequest {
          productId: productId,
          quantity: quantity,
          unitId: unitId,
-         movementType: 'WRITE_OFF',
+         movementType: StockMovementType.writeOff,
          remark: remark,
        );
 
   /// A correction after a physical count, in either direction.
-  const RecordStockMovementRequest.adjustment({
+  RecordStockMovementRequest.adjustment({
     required int productId,
     required double quantity,
     required int unitId,
-    required bool increase,
+    required StockAdjustmentMovementType adjustmentType,
     String? remark,
   }) : this(
          productId: productId,
          quantity: quantity,
          unitId: unitId,
-         movementType: increase ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT',
+         movementType: adjustmentType.movementType,
          remark: remark,
        );
 
   final int productId;
   final double quantity;
   final int unitId;
-  final String movementType;
+  final StockMovementType movementType;
   final String? remark;
 
   Map<String, dynamic> toJson() => {
     'productId': productId,
     'quantity': quantity,
     'unitId': unitId,
-    'movementType': movementType,
+    'movementType': movementType.apiValue,
     if (remark != null && remark!.isNotEmpty) 'remark': remark,
   };
 }

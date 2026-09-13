@@ -5,6 +5,7 @@ import '../../../../data/datasource/datasource_user/inventory_categories_datasou
 import '../../../../data/models/models_user/inventory_categories_model.dart';
 import '../../../../providers/providers_user/inventory_categories_provider.dart';
 import '../../../feature_shared/auth/controller/auth_controller.dart';
+import '../../inventory_products/controllers/inventory_products_controller.dart';
 
 /// Sentinel so [InventoryCategoriesState.copyWith] can tell "leave [error]
 /// alone" apart from "clear it" — clearing is a real state the screen needs
@@ -33,21 +34,21 @@ class InventoryCategoriesState {
   });
 
   factory InventoryCategoriesState.initial() => const InventoryCategoriesState(
-        categories: [],
-        isLoading: true,
-        error: null,
-        search: '',
-        // The backend's pages are 1-indexed (page 1 is the first page) — a
-        // request for page 0 silently gets clamped to page 1 there, so
-        // starting our own counter at 0 meant "next page" only ever asked
-        // for page 1 again instead of advancing to page 2.
-        pageNumber: 1,
-        pageSize: 20,
-        totalPages: 0,
-        totalElements: 0,
-        isLast: true,
-        busyIds: {},
-      );
+    categories: [],
+    isLoading: true,
+    error: null,
+    search: '',
+    // The backend's pages are 1-indexed (page 1 is the first page) — a
+    // request for page 0 silently gets clamped to page 1 there, so
+    // starting our own counter at 0 meant "next page" only ever asked
+    // for page 1 again instead of advancing to page 2.
+    pageNumber: 1,
+    pageSize: 20,
+    totalPages: 0,
+    totalElements: 0,
+    isLast: true,
+    busyIds: {},
+  );
 
   final List<InventoryCategoryModel> categories;
 
@@ -171,6 +172,10 @@ class InventoryCategoriesController extends Notifier<InventoryCategoriesState> {
     try {
       final category = await _dataSource.create(request);
       await refresh();
+      // The product form's category picker is cached by its controller.
+      // Recreate that controller so a category added here is immediately
+      // available when the user switches to Products.
+      ref.invalidate(inventoryProductsControllerProvider);
       return category;
     } on ApiException catch (e) {
       await _handleUnauthorized(e);
@@ -185,6 +190,7 @@ class InventoryCategoriesController extends Notifier<InventoryCategoriesState> {
     try {
       final category = await _dataSource.update(id, request);
       await refresh();
+      ref.invalidate(inventoryProductsControllerProvider);
       return category;
     } on ApiException catch (e) {
       await _handleUnauthorized(e);
@@ -197,10 +203,11 @@ class InventoryCategoriesController extends Notifier<InventoryCategoriesState> {
   /// list is also refreshed so the removed row disappears once this
   /// completes.
   Future<String> removeCategory(int id) => _withBusy(id, () async {
-        final message = await _dataSource.remove(id);
-        await refresh();
-        return message;
-      });
+    final message = await _dataSource.remove(id);
+    await refresh();
+    ref.invalidate(inventoryProductsControllerProvider);
+    return message;
+  });
 
   Future<T> _withBusy<T>(int id, Future<T> Function() action) async {
     state = state.copyWith(busyIds: {...state.busyIds, id});
@@ -230,6 +237,7 @@ class InventoryCategoriesController extends Notifier<InventoryCategoriesState> {
 /// `inventoryUnitsControllerProvider` for the same reasoning (and the bug
 /// it was fixing).
 final inventoryCategoriesControllerProvider =
-    NotifierProvider.autoDispose<InventoryCategoriesController, InventoryCategoriesState>(
-  InventoryCategoriesController.new,
-);
+    NotifierProvider.autoDispose<
+      InventoryCategoriesController,
+      InventoryCategoriesState
+    >(InventoryCategoriesController.new);

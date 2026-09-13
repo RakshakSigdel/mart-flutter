@@ -194,7 +194,7 @@ class StockDetailController extends Notifier<StockDetailState> {
   Future<void> adjust({
     required double quantity,
     required int unitId,
-    required bool increase,
+    required StockAdjustmentMovementType adjustmentType,
     String? remark,
   }) => _submit(
     () => _dataSource.adjust(
@@ -202,7 +202,7 @@ class StockDetailController extends Notifier<StockDetailState> {
         productId: productId,
         quantity: quantity,
         unitId: unitId,
-        increase: increase,
+        adjustmentType: adjustmentType,
         remark: remark,
       ),
     ),

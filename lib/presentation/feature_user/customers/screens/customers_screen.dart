@@ -50,44 +50,6 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
     }
   }
 
-  Future<void> _findByPhone() async {
-    final phoneController = TextEditingController();
-    final phone = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Find customer by phone'),
-        content: AppTextField(
-          controller: phoneController,
-          label: 'Phone number',
-          autofocus: true,
-          keyboardType: TextInputType.phone,
-          textInputAction: TextInputAction.search,
-          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
-        ),
-        actions: [
-          AppButton(
-            label: 'Cancel',
-            variant: AppButtonVariant.secondary,
-            onPressed: () => Navigator.of(dialogContext).pop(),
-          ),
-          AppButton(
-            label: 'Open customer',
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(phoneController.text),
-          ),
-        ],
-      ),
-    );
-    phoneController.dispose();
-    if (phone == null || phone.trim().isEmpty || !mounted) return;
-    try {
-      final customer = await _controller.findByPhone(phone);
-      if (mounted) context.push(Routes.customerDetail(customer.id));
-    } on ApiException catch (e) {
-      if (mounted) AppSnackBar.error(context, e.message);
-    }
-  }
-
   Future<void> _handleRowAction(
     CustomerModel customer,
     CustomerRowAction action,
@@ -158,7 +120,6 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                   _controller.setSearch(value);
                   _controller.submitSearch();
                 },
-                onFindPhonePressed: _findByPhone,
                 onAddPressed: _addCustomer,
               ),
               const SizedBox(height: AppSpacing.md),

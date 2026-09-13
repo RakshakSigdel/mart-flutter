@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/core.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/inventory_units_model.dart';
+import '../../../../data/models/models_user/stock_model.dart';
 import '../controllers/stock_detail_controller.dart';
 
 /// Corrects a stock figure after a physical count, in either direction.
@@ -27,7 +28,8 @@ class _StockAdjustDialogState extends ConsumerState<StockAdjustDialog> {
   final _quantityController = TextEditingController();
   final _remarkController = TextEditingController();
   InventoryUnitModel? _unit;
-  bool _increase = true;
+  StockAdjustmentMovementType _movementType =
+      StockAdjustmentMovementType.adjustmentIn;
   bool _submitting = false;
   String? _errorMessage;
 
@@ -62,7 +64,7 @@ class _StockAdjustDialogState extends ConsumerState<StockAdjustDialog> {
           .adjust(
             quantity: quantity,
             unitId: unit.id,
-            increase: _increase,
+            adjustmentType: _movementType,
             remark: _remarkController.text.trim().isEmpty
                 ? null
                 : _remarkController.text.trim(),
@@ -90,26 +92,34 @@ class _StockAdjustDialogState extends ConsumerState<StockAdjustDialog> {
               Expanded(
                 child: AppButton(
                   label: 'Increase',
-                  variant: _increase
+                  variant:
+                      _movementType == StockAdjustmentMovementType.adjustmentIn
                       ? AppButtonVariant.primary
                       : AppButtonVariant.secondary,
                   leading: const Icon(Icons.add_rounded, size: 16),
                   onPressed: _submitting
                       ? null
-                      : () => setState(() => _increase = true),
+                      : () => setState(
+                          () => _movementType =
+                              StockAdjustmentMovementType.adjustmentIn,
+                        ),
                 ),
               ),
               const SizedBox(width: AppSpacing.smMd),
               Expanded(
                 child: AppButton(
                   label: 'Decrease',
-                  variant: !_increase
+                  variant:
+                      _movementType == StockAdjustmentMovementType.adjustmentOut
                       ? AppButtonVariant.primary
                       : AppButtonVariant.secondary,
                   leading: const Icon(Icons.remove_rounded, size: 16),
                   onPressed: _submitting
                       ? null
-                      : () => setState(() => _increase = false),
+                      : () => setState(
+                          () => _movementType =
+                              StockAdjustmentMovementType.adjustmentOut,
+                        ),
                 ),
               ),
             ],

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/core.dart';
 import '../../../../data/models/models_shared/profile_model.dart';
 import '../../auth/controller/auth_controller.dart';
+import '../../../feature_user/shell/controllers/sidebar_controller.dart';
+import '../../../feature_user/shell/widgets/admin_sidebar.dart';
 import '../controllers/profile_controller.dart';
 import '../widgets/change_password_dialog.dart';
 
@@ -37,8 +39,15 @@ String _formatDate(DateTime? date) {
 /// Full page rather than a dropdown/popover — same reasoning as every other
 /// detail screen in this app: there's real content here, not a couple of
 /// menu items.
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   Future<void> _changePassword(BuildContext context, WidgetRef ref) async {
     final message = await showChangePasswordDialog(context);
@@ -50,16 +59,54 @@ class ProfileScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _logout() async {
+    await ref.read(authControllerProvider.notifier).logout();
+    if (mounted) context.go(Routes.login);
+  }
+
+  void _navigateFromSidebar(String path) {
+    if (path != Routes.profile) context.go(path);
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      _scaffoldKey.currentState?.closeDrawer();
+    }
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final state = ref.watch(profileControllerProvider);
     final profile = state.profile;
+    final authState = ref.watch(authControllerProvider);
+    final session = authState is AuthAuthenticated ? authState.session : null;
+    final sidebarState = ref.watch(sidebarControllerProvider);
+    final companyName =
+        session?.companyName ?? session?.displayName ?? 'Mart Admin';
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: AppColors.background,
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.menu_rounded),
+          tooltip: 'Menu',
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+        ),
         title: const Text('Profile'),
+      ),
+      drawer: Drawer(
+        backgroundColor: AppColors.card,
+        width: AdminSidebar.expandedWidth,
+        child: AdminSidebar(
+          sections: sidebarState.sections,
+          selectedPath: Routes.profile,
+          onNavigate: _navigateFromSidebar,
+          companyName: companyName,
+          onLogout: _logout,
+          isRefreshing: sidebarState.isLoading,
+          refreshFailed: sidebarState.error != null,
+          onRetry: () => ref.read(sidebarControllerProvider.notifier).refresh(),
+        ),
       ),
       body: _buildBody(context, ref, state, profile),
     );
@@ -166,18 +213,13 @@ class ProfileScreen extends ConsumerWidget {
                 label: 'Log out',
                 variant: AppButtonVariant.ghost,
                 leading: const Icon(Icons.logout),
-                onPressed: () => _logout(context, ref),
+                onPressed: _logout,
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  Future<void> _logout(BuildContext context, WidgetRef ref) async {
-    await ref.read(authControllerProvider.notifier).logout();
-    if (context.mounted) context.go(Routes.login);
   }
 }
 

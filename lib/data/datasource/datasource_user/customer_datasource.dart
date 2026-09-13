@@ -68,20 +68,6 @@ class CustomerRemoteDataSource {
     }
   }
 
-  Future<CustomerModel> getByPhone(String phone) async {
-    try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        '/customers/by-phone/$phone',
-      );
-      return await _unwrap(
-        response.data,
-        (raw) => CustomerModel.fromJson(raw as Map<String, dynamic>),
-      );
-    } on DioException catch (e) {
-      throw ApiException.fromDioException(e);
-    }
-  }
-
   Future<CustomerOutstandingModel> outstanding(int id) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(

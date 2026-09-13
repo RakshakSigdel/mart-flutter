@@ -156,17 +156,6 @@ class CustomersController extends Notifier<CustomersState> {
     return message;
   });
 
-  /// The directory search is useful for partial matches; this is the exact
-  /// phone-number lookup used by the dedicated toolbar action.
-  Future<CustomerModel> findByPhone(String phone) async {
-    try {
-      return await _dataSource.getByPhone(phone.trim());
-    } on ApiException catch (e) {
-      await _handleUnauthorized(e);
-      rethrow;
-    }
-  }
-
   Future<T> _withBusy<T>(int id, Future<T> Function() action) async {
     state = state.copyWith(busyIds: {...state.busyIds, id});
     try {

@@ -47,7 +47,7 @@ String formatPaymentMethod(String? value) =>
 /// tax scheme field like this normally distinguishes.
 enum TaxScheme {
   vat('VAT'),
-  exempt('EXEMPT');
+  nonVat('NON_VAT');
 
   const TaxScheme(this.apiValue);
 
@@ -62,7 +62,7 @@ enum TaxScheme {
 
   String get label => switch (this) {
     TaxScheme.vat => 'VAT',
-    TaxScheme.exempt => 'Exempt',
+    TaxScheme.nonVat => 'NON_VAT',
   };
 }
 
