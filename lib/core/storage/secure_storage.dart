@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'browser_storage.dart';
+
 /// Encrypted key-value storage for anything that must survive an app
 /// restart but shouldn't sit in plain text — today the auth token and the
 /// full session payload it came with.
@@ -14,10 +16,9 @@ class SecureStorage {
 
   // `flutter_secure_storage` on web relies on Web Crypto, which is only
   // available in a secure browser context (HTTPS, apart from localhost).
-  // Keep the current session in memory as well so a storage-policy failure
-  // cannot abort an otherwise successful login halfway through. The session
-  // will not survive a page reload in that situation, but authenticated API
-  // calls in the current app session still receive their bearer token.
+  // Fall back to browser local storage in that case so an HTTP-hosted web
+  // build can restore a session after refresh. This fallback only exists on
+  // web; native targets continue to use encrypted secure storage exclusively.
   String? _inMemoryToken;
   String? _inMemorySessionJson;
 
@@ -31,17 +32,19 @@ class SecureStorage {
     _inMemoryToken = token;
     try {
       await _storage.write(key: _tokenKey, value: token);
+      _deleteBrowserFallback(_tokenKey);
     } catch (_) {
-      // HTTP-hosted web builds cannot use Web Crypto. The in-memory copy is
-      // intentionally retained so login can continue for this page session.
+      _writeBrowserFallback(_tokenKey, token);
     }
   }
 
   Future<String?> readToken() async {
     try {
-      return await _storage.read(key: _tokenKey) ?? _inMemoryToken;
+      return await _storage.read(key: _tokenKey) ??
+          _readBrowserFallback(_tokenKey) ??
+          _inMemoryToken;
     } catch (_) {
-      return _inMemoryToken;
+      return _readBrowserFallback(_tokenKey) ?? _inMemoryToken;
     }
   }
 
@@ -52,16 +55,19 @@ class SecureStorage {
     _inMemorySessionJson = json;
     try {
       await _storage.write(key: _sessionKey, value: json);
+      _deleteBrowserFallback(_sessionKey);
     } catch (_) {
-      // See [writeToken].
+      _writeBrowserFallback(_sessionKey, json);
     }
   }
 
   Future<String?> readSessionJson() async {
     try {
-      return await _storage.read(key: _sessionKey) ?? _inMemorySessionJson;
+      return await _storage.read(key: _sessionKey) ??
+          _readBrowserFallback(_sessionKey) ??
+          _inMemorySessionJson;
     } catch (_) {
-      return _inMemorySessionJson;
+      return _readBrowserFallback(_sessionKey) ?? _inMemorySessionJson;
     }
   }
 
@@ -70,11 +76,37 @@ class SecureStorage {
   Future<void> clearSession() async {
     _inMemoryToken = null;
     _inMemorySessionJson = null;
+    _deleteBrowserFallback(_tokenKey);
+    _deleteBrowserFallback(_sessionKey);
     try {
       await _storage.delete(key: _tokenKey);
       await _storage.delete(key: _sessionKey);
     } catch (_) {
       // Nothing further to clear when secure browser storage is unavailable.
+    }
+  }
+
+  static String? _readBrowserFallback(String key) {
+    try {
+      return BrowserStorage.read(key);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static void _writeBrowserFallback(String key, String value) {
+    try {
+      BrowserStorage.write(key, value);
+    } catch (_) {
+      // Private browsing or restrictive browser policies can block this too.
+    }
+  }
+
+  static void _deleteBrowserFallback(String key) {
+    try {
+      BrowserStorage.delete(key);
+    } catch (_) {
+      // The in-memory copy has still been cleared.
     }
   }
 }
