@@ -27,9 +27,11 @@ class ApiConfig {
     if (isProduction) return _productionBaseUrl;
     if (!kIsWeb && Platform.isAndroid) {
       //adb reverse tcp:1200 tcp:1200
-      return 'http://localhost:$_port$_path';
+      // return 'http://localhost:$_port$_path';
+      return 'http://103.198.9.209/retail-api/';
     }
-    return 'http://localhost:$_port$_path';
+    // return 'http://localhost:$_port$_path';
+    return 'http://103.198.9.209/retail-api/';
   }
 }
 
