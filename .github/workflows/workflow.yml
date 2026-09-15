@@ -1,0 +1,56 @@
+name: workflow
+
+on:
+  push:
+    branches:
+      - main
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install deps
+        run: flutter pub get
+
+      - name: Build Flutter Web
+        run: flutter build web --release --base-href /app/
+
+      - name: Copy build to server
+        uses: appleboy/scp-action@v0.1.7
+
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          source: "build/web/*"
+          target: "/tmp/mart-web"
+          strip_components: 2
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            set -e
+            
+            mkdir -p /var/www/html/mart-web-app
+            
+            rm -rf /var/www/html/mart-web-app/*
+            cp -r /tmp/mart-web/* /var/www/html/mart-web-app/
+            
+            rm -rf /tmp/mart-web
+            
+            sudo systemctl reload nginx

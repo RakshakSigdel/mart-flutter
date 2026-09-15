@@ -25,7 +25,7 @@ class MartApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Watched (not read) so the router itself is rebuilt if routerProvider
-    // is ever overridden mid-session (tests); the router's own internal
+    // is ever overridden mid-session (tests); the router's own internalÏ
     // state — current location, auth redirect — is independent of this.
     final router = ref.watch(routerProvider);
 
