@@ -22,7 +22,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Flutter Web
-        run: flutter build web --release --base-href /app/
+        run: flutter build web --release --base-href /app-mart/
 
       - name: Copy build to server
         uses: appleboy/scp-action@v0.1.7
