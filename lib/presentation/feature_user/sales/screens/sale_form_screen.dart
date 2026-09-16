@@ -28,15 +28,15 @@ class SaleFormScreen extends StatelessWidget {
       appBar: showAppBar
           ? AppBar(
               backgroundColor: AppColors.background,
-              title: const Text('Ring up sale'),
+              title: const Text('Make bill / बिल बनाउनुहोस्'),
             )
           : null,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: SaleForm(
+            constraints: BoxConstraints(maxWidth: showAppBar ? 640 : 920),
+              child: SaleForm(
               onSubmitted:
                   onSubmitted ??
                   (showAppBar

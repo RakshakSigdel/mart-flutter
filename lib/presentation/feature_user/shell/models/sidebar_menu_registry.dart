@@ -98,6 +98,39 @@ const Map<String, String> _menuKeyRoutes = {
   'ACCOUNT': Routes.profile,
 };
 
+/// Shop-facing labels for the operational routes. The backend owns which
+/// pages a role may access; this map only replaces internal accounting words
+/// with the words staff use at the counter. Unknown menu keys intentionally
+/// keep the backend's label.
+const Map<String, String> _shopLabelsByMenuKey = {
+  'POS': 'Make bill / बिल बनाउनुहोस्',
+  'SALES': 'Sales history',
+  'ORDERS': 'Sales history',
+  'INVOICES': 'Sales history',
+  'PURCHASE': 'Receive stock',
+  'PURCHASES': 'Receive stock',
+  'GOODS_RECEIPTS': 'Receive stock',
+  'PURCHASE_ORDERS': 'Supplier orders',
+  'VENDOR': 'Suppliers',
+  'VENDORS': 'Suppliers',
+  'CUSTOMER': 'Customers & credit',
+  'CUSTOMERS': 'Customers & credit',
+  'INVENTORY': 'Stock & reordering',
+  'STOCK_LEVELS': 'Stock & reordering',
+  'STOCK_ADJUSTMENTS': 'Stock corrections',
+  'STOCK_WRITE_OFFS': 'Damaged or expired stock',
+  'PRODUCTS': 'Products & prices',
+  'CATEGORIES': 'Product categories',
+  'UNITS': 'Units (kg, packet, box)',
+  'REPORTS': 'Reports & IRD',
+  'SALES_REPORTS': 'Reports & IRD',
+  'SETTINGS': 'Tax & mart settings',
+  'MART_SETTINGS': 'Tax & mart settings',
+};
+
+String _shopLabelFor(String menuKey, String fallback) =>
+    _shopLabelsByMenuKey[menuKey] ?? fallback;
+
 /// Every path [AdminShellScreen] renders as one of its own
 /// `StatefulShellRoute` branches (see `AppRouter`) — switching between
 /// these should replace the current branch location (`context.go`), the
@@ -220,9 +253,10 @@ ResolvedSidebarEntry _resolveItem(SidebarItemModel item) {
   final ownRawPath = _menuKeyRoutes[item.menuKey];
   final ownPath = ownRawPath ?? Routes.notFound;
   final icon = sidebarIconFor(item.icon, menuKey: item.menuKey);
+  final name = _shopLabelFor(item.menuKey, item.name);
 
   if (item.subItems.isEmpty) {
-    return ResolvedSidebarLink(name: item.name, icon: icon, path: ownPath);
+    return ResolvedSidebarLink(name: name, icon: icon, path: ownPath);
   }
 
   final children = <ResolvedSidebarLink>[];
@@ -237,20 +271,26 @@ ResolvedSidebarEntry _resolveItem(SidebarItemModel item) {
       continue;
     }
     seenPaths.add(path);
-    children.add(ResolvedSidebarLink(name: sub.name, icon: null, path: path));
+    children.add(
+      ResolvedSidebarLink(
+        name: _shopLabelFor(sub.menuKey, sub.name),
+        icon: null,
+        path: path,
+      ),
+    );
   }
 
   final distinctChildPaths = children.map((c) => c.path).toSet();
   if (distinctChildPaths.length == 1 &&
       (ownRawPath == null || ownRawPath == distinctChildPaths.first)) {
     return ResolvedSidebarLink(
-      name: item.name,
+      name: name,
       icon: icon,
       path: distinctChildPaths.first,
     );
   }
 
-  return ResolvedSidebarGroup(name: item.name, icon: icon, children: children);
+  return ResolvedSidebarGroup(name: name, icon: icon, children: children);
 }
 
 /// Shown while the real menu is loading and — since it goes through the same

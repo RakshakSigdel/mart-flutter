@@ -90,9 +90,16 @@ class _InventoryCategoryFormState extends ConsumerState<InventoryCategoryForm> {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
+          if (!widget.isEditing) ...[
+            const Text(
+              'Only a category name is needed. You can skip the details below.',
+              style: AppTypography.bodySmall,
+            ),
+            const SizedBox(height: AppSpacing.smMd),
+          ],
           AppTextField(
             controller: _name,
-            label: 'Name',
+            label: 'Category name',
             hint: 'e.g. Beverages',
             enabled: !_submitting,
             validator: (v) =>

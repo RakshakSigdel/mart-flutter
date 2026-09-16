@@ -25,7 +25,7 @@ const Map<String, String> _fallbackTitles = {
   Routes.stockAdjustments: 'Stock Adjustments',
   Routes.purchases: 'Purchases',
   Routes.sales: 'Sales',
-  Routes.pos: 'Point of Sale',
+  Routes.pos: 'Make bill / बिल बनाउनुहोस्',
   Routes.salesReports: 'Sales Reports',
   Routes.settings: 'Mart Settings',
 };
@@ -102,6 +102,27 @@ class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
     return _fallbackTitles[location] ?? 'Mart Admin';
   }
 
+  bool _canNavigateTo(
+    List<ResolvedSidebarSection> sections,
+    String targetPath,
+  ) {
+    for (final section in sections) {
+      for (final entry in section.entries) {
+        switch (entry) {
+          case ResolvedSidebarLink() when entry.path == targetPath:
+            return true;
+          case ResolvedSidebarGroup() when entry.children.any(
+            (child) => child.path == targetPath,
+          ):
+            return true;
+          default:
+            break;
+        }
+      }
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
@@ -113,6 +134,7 @@ class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
     final isWide = width >= AppBreakpoints.tablet;
     final location = widget.location;
     final title = _titleFor(sidebarState.sections, location);
+    final canMakeBill = _canNavigateTo(sidebarState.sections, Routes.pos);
 
     Widget buildSidebar({required bool isWide}) => AdminSidebar(
       sections: sidebarState.sections,
@@ -143,6 +165,18 @@ class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
                 onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               ),
         title: Text(title),
+        actions: location == Routes.pos || !canMakeBill
+            ? null
+            : [
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.sm),
+                  child: TextButton.icon(
+                    onPressed: () => _onNavigate(Routes.pos, isWide: isWide),
+                    icon: const Icon(Icons.point_of_sale_outlined),
+                    label: const Text('Make bill'),
+                  ),
+                ),
+              ],
       ),
       drawer: isWide
           ? null

@@ -16,7 +16,7 @@ class PurchaseFormScreen extends StatelessWidget {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: AppColors.background,
-        title: const Text('Record purchase'),
+        title: const Text('Receive stock / सामान भित्र्याउनुहोस्'),
       ),
       body: Center(
         child: SingleChildScrollView(

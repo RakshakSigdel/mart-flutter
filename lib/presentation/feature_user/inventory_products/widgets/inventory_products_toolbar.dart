@@ -85,7 +85,7 @@ class InventoryProductsToolbar extends StatelessWidget {
     );
 
     final addButton = AppButton(
-      label: 'Add product',
+      label: 'Quick add product',
       leading: const Icon(Icons.add),
       onPressed: onAddPressed,
     );

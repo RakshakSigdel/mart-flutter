@@ -94,7 +94,7 @@ class _PurchaseFormState extends ConsumerState<PurchaseForm> {
 
     final vendor = _vendor;
     if (vendor == null) {
-      setState(() => _errorMessage = 'Vendor is required');
+      setState(() => _errorMessage = 'Supplier is required');
       return;
     }
     final purchaseDate = _purchaseDate;
@@ -158,92 +158,90 @@ class _PurchaseFormState extends ConsumerState<PurchaseForm> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppSearchableDropdownField<VendorModel>(
-            label: 'Vendor',
+            label: 'Supplier / आपूर्तिकर्ता',
             selectedItem: _vendor,
             items: _vendorOptions,
             itemLabel: (v) => v.name,
-            hint: 'Select a vendor',
+            hint: 'Select a supplier',
             onChanged: (v) => setState(() => _vendor = v),
-            validator: (v) => v == null ? 'Vendor is required' : null,
+            validator: (v) => v == null ? 'Supplier is required' : null,
           ),
           const SizedBox(height: AppSpacing.smMd),
           AppTextField(
             controller: _billNumberController,
-            label: 'Bill number',
+            label: 'Supplier bill number',
             hint: 'e.g. INV-2026-0142',
             enabled: !_submitting,
             validator: (v) => _requiredValidator(v, 'Bill number'),
           ),
           const SizedBox(height: AppSpacing.smMd),
           AppDateField(
-            label: 'Purchase date',
+            label: 'Goods received date',
             value: _purchaseDate,
             enabled: !_submitting,
             onChanged: (date) => setState(() => _purchaseDate = date),
           ),
           const SizedBox(height: AppSpacing.smMd),
-          Row(
+          AppDropdownField<PaymentMethod>(
+            label: 'How did you pay the supplier?',
+            value: _paymentMethod,
+            enabled: !_submitting,
+            items: [
+              for (final method in PaymentMethod.values)
+                DropdownMenuItem(value: method, child: Text(method.label)),
+            ],
+            onChanged: (value) {
+              if (value != null) setState(() => _paymentMethod = value);
+            },
+          ),
+          const SizedBox(height: AppSpacing.smMd),
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: const Text('Tax, discount and note (optional)'),
+            subtitle: const Text('Only change these when this bill needs it.'),
             children: [
-              Expanded(
-                child: AppDropdownField<PaymentMethod>(
-                  label: 'Payment method',
-                  value: _paymentMethod,
-                  enabled: !_submitting,
-                  items: [
-                    for (final method in PaymentMethod.values)
-                      DropdownMenuItem(
-                        value: method,
-                        child: Text(method.label),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) setState(() => _paymentMethod = value);
-                  },
-                ),
+              AppDropdownField<TaxScheme>(
+                label: 'Tax scheme',
+                value: _taxScheme,
+                enabled: !_submitting,
+                items: [
+                  for (final scheme in TaxScheme.values)
+                    DropdownMenuItem(
+                      value: scheme,
+                      child: Text(scheme.label),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) setState(() => _taxScheme = value);
+                },
               ),
-              const SizedBox(width: AppSpacing.smMd),
-              Expanded(
-                child: AppDropdownField<TaxScheme>(
-                  label: 'Tax scheme',
-                  value: _taxScheme,
-                  enabled: !_submitting,
-                  items: [
-                    for (final scheme in TaxScheme.values)
-                      DropdownMenuItem(
-                        value: scheme,
-                        child: Text(scheme.label),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) setState(() => _taxScheme = value);
-                  },
-                ),
+              const SizedBox(height: AppSpacing.smMd),
+              AppTextField(
+                controller: _discountController,
+                label: 'Discount amount',
+                hint: 'e.g. 0',
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                ],
+                enabled: !_submitting,
+              ),
+              const SizedBox(height: AppSpacing.smMd),
+              AppTextField.multiline(
+                controller: _remarkController,
+                label: 'Note',
+                enabled: !_submitting,
               ),
             ],
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          AppTextField(
-            controller: _discountController,
-            label: 'Discount amount',
-            hint: 'e.g. 0',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-            ],
-            enabled: !_submitting,
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          AppTextField.multiline(
-            controller: _remarkController,
-            label: 'Remark',
-            enabled: !_submitting,
           ),
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
-              Expanded(child: Text('Items', style: AppTypography.subtitle)),
+              const Expanded(
+                child: Text('Items received', style: AppTypography.subtitle),
+              ),
               AppButton(
-                label: 'Add item',
+                label: 'Add another item',
                 size: AppButtonSize.sm,
                 variant: AppButtonVariant.secondary,
                 leading: const Icon(Icons.add, size: 16),
@@ -265,7 +263,7 @@ class _PurchaseFormState extends ConsumerState<PurchaseForm> {
             children: [
               Expanded(
                 child: Text(
-                  'Estimated subtotal',
+                  'Estimated goods total',
                   style: AppTypography.subtitle,
                 ),
               ),
@@ -273,13 +271,13 @@ class _PurchaseFormState extends ConsumerState<PurchaseForm> {
             ],
           ),
           Text(
-            'Tax and net total are calculated by the server on save.',
+            'Tax and final total are confirmed when the purchase is saved.',
             style: AppTypography.caption.copyWith(color: AppColors.textMuted),
           ),
           AppFormError(message: _errorMessage),
           const SizedBox(height: AppSpacing.xl),
           AppButton.expanded(
-            label: 'Record purchase',
+            label: 'Save received stock',
             isLoading: _submitting,
             onPressed: _submitting ? null : _submit,
           ),

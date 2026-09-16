@@ -52,7 +52,7 @@ class SalesToolbar extends StatelessWidget {
 
     final search = AppTextField(
       controller: searchController,
-      hint: 'Search by invoice or customer',
+      hint: 'Search bill no. or customer',
       prefixIcon: Icons.search,
       textInputAction: TextInputAction.search,
       onChanged: onSearchChanged,
@@ -89,7 +89,7 @@ class SalesToolbar extends StatelessWidget {
     );
 
     final addButton = AppButton(
-      label: 'New sale',
+      label: 'Make bill',
       leading: const Icon(Icons.add),
       onPressed: onAddPressed,
     );

@@ -32,7 +32,12 @@ class InventoryProductSellingUnitSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text('Selling units', style: AppTypography.subtitle)),
+              const Expanded(
+                child: Text(
+                  'Selling sizes & prices',
+                  style: AppTypography.subtitle,
+                ),
+              ),
               AppButton(
                 label: 'Add',
                 size: AppButtonSize.sm,
@@ -43,9 +48,14 @@ class InventoryProductSellingUnitSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.smMd),
+          const Text(
+            'Add another size only when this product is sold in more than one pack.',
+            style: AppTypography.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.smMd),
           if (units.isEmpty)
             Text(
-              'No selling units configured yet.',
+              'No selling size added yet.',
               style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
             )
           else

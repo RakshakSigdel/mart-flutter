@@ -114,6 +114,9 @@ class _PurchaseLineItemRowState extends ConsumerState<PurchaseLineItemRow> {
         _loadingUnits = false;
         _unit = selected;
       });
+      if (_quantityController.text.trim().isEmpty) {
+        _quantityController.text = '1';
+      }
       if (selected != null) {
         _rateController.text = formatMoneyAmount(selected.purchasePrice);
       }
@@ -160,13 +163,13 @@ class _PurchaseLineItemRowState extends ConsumerState<PurchaseLineItemRow> {
             children: [
               Expanded(
                 child: AppSearchableDropdownField<ProductModel>(
-                  label: 'Product',
+                  label: 'Product or barcode',
                   selectedItem: _product,
                   asyncItems: _searchProducts,
                   itemLabel: (p) => p.productCode == null
                       ? p.name
                       : '${p.name} (${p.productCode})',
-                  hint: 'Search product',
+                  hint: 'Search by name or code',
                   onChanged: _onProductSelected,
                 ),
               ),
@@ -225,7 +228,7 @@ class _PurchaseLineItemRowState extends ConsumerState<PurchaseLineItemRow> {
               Expanded(
                 child: AppTextField(
                   controller: _rateController,
-                  label: 'Rate',
+                  label: 'Purchase price',
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),

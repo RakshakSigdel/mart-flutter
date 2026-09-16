@@ -235,6 +235,10 @@ class InventoryProductsController extends Notifier<InventoryProductsState> {
     }
   }
 
+  /// Refreshes the quick-add category picker after the user creates a
+  /// category without leaving the product workflow.
+  Future<void> refreshCategoryOptions() => _loadCategoryOptions();
+
   /// Fetches the unit dictionary the create-product form's base-unit
   /// picker needs — called from the form itself rather than [build], so
   /// the request only ever fires when that form actually opens. A no-op

@@ -131,6 +131,15 @@ class _SaleFormState extends ConsumerState<SaleForm> {
       setState(() => _errorMessage = 'Add at least one complete item');
       return;
     }
+    if (_paymentMethod == PaymentMethod.credit &&
+        _selectedCustomer == null &&
+        _customerNameController.text.trim().isEmpty) {
+      setState(
+        () => _errorMessage =
+            'Choose or enter a customer before recording a credit sale.',
+      );
+      return;
+    }
     final tendered = double.tryParse(_tenderedController.text.trim());
     final discount = double.tryParse(_discountController.text.trim());
 
@@ -199,9 +208,58 @@ class _SaleFormState extends ConsumerState<SaleForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft,
+              borderRadius: AppBorderRadius.radiusL,
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Make a bill', style: AppTypography.title),
+                SizedBox(height: AppSpacing.xs),
+                Text(
+                  '1. Add products  2. Take payment  3. Save the bill',
+                  style: AppTypography.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              const Expanded(
+                child: Text('1. Add products', style: AppTypography.subtitle),
+              ),
+              AppButton(
+                label: 'Add another product',
+                size: AppButtonSize.sm,
+                variant: AppButtonVariant.secondary,
+                leading: const Icon(Icons.add, size: 16),
+                onPressed: _submitting ? null : _addRow,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          const Text(
+            'Search by product name or barcode. Quantity starts at 1.',
+            style: AppTypography.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.smMd),
+          for (final entry in _rows.entries) ...[
+            SaleLineItemRow(
+              key: ValueKey(entry.key),
+              onChanged: (data) => setState(() => _rows[entry.key] = data),
+              onRemove: () => _removeRow(entry.key),
+            ),
+            const SizedBox(height: AppSpacing.smMd),
+          ],
+          const Divider(height: AppSpacing.xl),
           // POS only selects the payment method.
           AppDropdownField<PaymentMethod>(
-            label: 'Payment method',
+            label: 'How is the customer paying?',
             value: _paymentMethod,
             enabled: !_submitting,
             items: [
@@ -221,7 +279,7 @@ class _SaleFormState extends ConsumerState<SaleForm> {
                 Expanded(
                   child: AppTextField(
                     controller: _tenderedController,
-                    label: 'Tendered amount',
+                    label: 'Customer gave (cash)',
                     hint: 'e.g. 1000',
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -252,6 +310,33 @@ class _SaleFormState extends ConsumerState<SaleForm> {
               ),
             ],
           ),
+          if (_paymentMethod == PaymentMethod.cash) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final amount in const [100, 500, 1000, 2000])
+                  ActionChip(
+                    label: Text('Rs. $amount'),
+                    onPressed: _submitting
+                        ? null
+                        : () => setState(
+                            () => _tenderedController.text = '$amount',
+                          ),
+                  ),
+                ActionChip(
+                  label: const Text('Exact amount'),
+                  onPressed: _submitting
+                      ? null
+                      : () => setState(
+                          () => _tenderedController.text =
+                              _estimatedNetTotal.toStringAsFixed(2),
+                        ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: AppSpacing.lg),
 
           // ── Customer section ──────────────────────────────────────────────
@@ -259,7 +344,9 @@ class _SaleFormState extends ConsumerState<SaleForm> {
             children: [
               Expanded(
                 child: Text(
-                  'Customer (optional)',
+                  _paymentMethod == PaymentMethod.credit
+                      ? 'Customer for credit / उधारो'
+                      : 'Customer (optional)',
                   style: AppTypography.subtitle,
                 ),
               ),
@@ -280,7 +367,7 @@ class _SaleFormState extends ConsumerState<SaleForm> {
 
           // Existing-customer searchable picker
           AppSearchableDropdownField<CustomerModel>(
-            label: 'Select existing customer',
+            label: 'Find saved customer',
             selectedItem: _selectedCustomer,
             hint: 'Search by name or phone...',
             searchHint: 'Type to search customers...',
@@ -301,7 +388,7 @@ class _SaleFormState extends ConsumerState<SaleForm> {
           // Manual fields — pre-filled from picker, still editable
           AppTextField(
             controller: _customerNameController,
-            label: 'Name',
+            label: 'Customer name',
             enabled: !_submitting,
             onChanged: (_) {
               if (_selectedCustomer != null) {
@@ -315,7 +402,7 @@ class _SaleFormState extends ConsumerState<SaleForm> {
               Expanded(
                 child: AppTextField(
                   controller: _customerPhoneController,
-                  label: 'Phone',
+                  label: 'Phone number',
                   keyboardType: TextInputType.phone,
                   enabled: !_submitting,
                   onChanged: (_) {
@@ -343,40 +430,18 @@ class _SaleFormState extends ConsumerState<SaleForm> {
           const SizedBox(height: AppSpacing.smMd),
           AppTextField.multiline(
             controller: _remarkController,
-            label: 'Remark',
+            label: 'Note (optional)',
             enabled: !_submitting,
           ),
           const SizedBox(height: AppSpacing.lg),
 
           // ── Items ─────────────────────────────────────────────────────────
-          Row(
-            children: [
-              Expanded(child: Text('Items', style: AppTypography.subtitle)),
-              AppButton(
-                label: 'Add item',
-                size: AppButtonSize.sm,
-                variant: AppButtonVariant.secondary,
-                leading: const Icon(Icons.add, size: 16),
-                onPressed: _submitting ? null : _addRow,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          for (final entry in _rows.entries) ...[
-            SaleLineItemRow(
-              key: ValueKey(entry.key),
-              onChanged: (data) => setState(() => _rows[entry.key] = data),
-              onRemove: () => _removeRow(entry.key),
-            ),
-            const SizedBox(height: AppSpacing.smMd),
-          ],
-
           // ── Totals preview ────────────────────────────────────────────────
           const Divider(height: AppSpacing.lg),
           Row(
             children: [
               Expanded(
-                child: Text('Estimated total', style: AppTypography.subtitle),
+                child: Text('Bill total', style: AppTypography.subtitle),
               ),
               Text(
                 formatMoneyAmount(_estimatedNetTotal),
@@ -390,7 +455,7 @@ class _SaleFormState extends ConsumerState<SaleForm> {
               children: [
                 Expanded(
                   child: Text(
-                    'Estimated change',
+                    'Change to return',
                     style: AppTypography.bodySmall.copyWith(
                       color: AppColors.textMuted,
                     ),
@@ -401,13 +466,13 @@ class _SaleFormState extends ConsumerState<SaleForm> {
             ),
           ],
           Text(
-            'Tax, net total and change are calculated by the server on save.',
+            'Tax and final total are confirmed when the bill is saved.',
             style: AppTypography.caption.copyWith(color: AppColors.textMuted),
           ),
           AppFormError(message: _errorMessage),
           const SizedBox(height: AppSpacing.xl),
           AppButton.expanded(
-            label: 'Complete sale',
+            label: 'Save bill / बिल सुरक्षित गर्नुहोस्',
             isLoading: _submitting,
             onPressed: _submitting ? null : _submit,
           ),

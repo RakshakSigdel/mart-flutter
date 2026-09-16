@@ -56,7 +56,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
   Future<void> _addSale() async {
     final result = await context.push<SaleDetailModel>(Routes.saleNew);
     if (result != null && mounted) {
-      AppSnackBar.success(context, 'Sale recorded.');
+      AppSnackBar.success(context, 'Bill recorded.');
       context.push(Routes.saleDetail(result.id));
     }
   }
@@ -135,7 +135,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
         message: state.search.isEmpty
             ? 'Ring up your first sale to get started.'
             : 'Try a different search or clear your filters.',
-        actionLabel: state.search.isEmpty ? 'New sale' : null,
+        actionLabel: state.search.isEmpty ? 'Make bill' : null,
         onAction: state.search.isEmpty ? _addSale : null,
       );
     }

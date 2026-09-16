@@ -5,6 +5,7 @@ import '../../../../core/core.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
 import '../../../../providers/providers_user/inventory_products_provider.dart';
 import '../widgets/inventory_product_form.dart';
+import '../widgets/quick_product_form.dart';
 
 /// Full-page add/edit screen — pushed on top of [InventoryProductsScreen]
 /// rather than shown as a dialog, matching the pattern used for every
@@ -30,6 +31,7 @@ class InventoryProductFormScreen extends ConsumerStatefulWidget {
 
 class _InventoryProductFormScreenState extends ConsumerState<InventoryProductFormScreen> {
   late Future<ProductDetailModel?> _productFuture = _resolveProduct();
+  bool _showFullSetup = false;
 
   Future<ProductDetailModel?> _resolveProduct() async {
     final id = widget.productId;
@@ -43,7 +45,21 @@ class _InventoryProductFormScreenState extends ConsumerState<InventoryProductFor
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: AppColors.background,
-        title: Text(widget.isEditing ? 'Edit product' : 'Add product'),
+        title: Text(
+          widget.isEditing
+              ? 'Edit product'
+              : _showFullSetup
+              ? 'Full product setup'
+              : 'Add product',
+        ),
+        actions: widget.isEditing
+            ? null
+            : [
+                TextButton(
+                  onPressed: () => setState(() => _showFullSetup = !_showFullSetup),
+                  child: Text(_showFullSetup ? 'Quick add' : 'Full setup'),
+                ),
+              ],
       ),
       body: FutureBuilder<ProductDetailModel?>(
         future: _productFuture,
@@ -62,7 +78,9 @@ class _InventoryProductFormScreenState extends ConsumerState<InventoryProductFor
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 640),
-                child: InventoryProductForm(product: snapshot.data),
+                child: widget.isEditing || _showFullSetup
+                    ? InventoryProductForm(product: snapshot.data)
+                    : const QuickProductForm(),
               ),
             ),
           );

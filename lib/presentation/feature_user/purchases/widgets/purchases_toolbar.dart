@@ -41,7 +41,7 @@ class PurchasesToolbar extends StatelessWidget {
 
     final search = AppTextField(
       controller: searchController,
-      hint: 'Search by bill number',
+      hint: 'Search supplier bill number',
       prefixIcon: Icons.search,
       textInputAction: TextInputAction.search,
       onChanged: onSearchChanged,
@@ -56,7 +56,7 @@ class PurchasesToolbar extends StatelessWidget {
       selectedItem: selectedVendor,
       items: vendorOptions,
       itemLabel: (v) => v.name,
-      hint: 'All vendors',
+      hint: 'All suppliers',
       onChanged: (v) => onVendorFilterChanged(v?.id),
     );
 
@@ -73,7 +73,7 @@ class PurchasesToolbar extends StatelessWidget {
     );
 
     final addButton = AppButton(
-      label: 'New purchase',
+      label: 'Receive stock',
       leading: const Icon(Icons.add),
       onPressed: onAddPressed,
     );

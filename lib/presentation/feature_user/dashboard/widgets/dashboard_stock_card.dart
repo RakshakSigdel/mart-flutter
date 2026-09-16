@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/core.dart';
 import '../../../../data/models/models_user/stock_model.dart';
 
@@ -72,13 +73,26 @@ class DashboardStockCard extends StatelessWidget {
                   : AppColors.primarySoft,
               borderRadius: AppBorderRadius.radiusMD,
             ),
-            child: Text(
-              overview.trackedProducts == 0
-                  ? 'No products are being tracked yet.'
-                  : attention > 0
-                  ? 'Review stock levels for $attention ${attention == 1 ? 'product' : 'products'} needing attention.'
-                  : 'All tracked products are clear of stock alerts.',
-              style: AppTypography.bodySmall,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    overview.trackedProducts == 0
+                        ? 'No products are being tracked yet.'
+                        : attention > 0
+                        ? '$attention ${attention == 1 ? 'product needs' : 'products need'} ordering or attention.'
+                        : 'All tracked products are clear of stock alerts.',
+                    style: AppTypography.bodySmall,
+                  ),
+                ),
+                if (attention > 0) ...[
+                  const SizedBox(width: AppSpacing.sm),
+                  TextButton(
+                    onPressed: () => context.go(Routes.stock),
+                    child: const Text('Review'),
+                  ),
+                ],
+              ],
             ),
           ),
         ],

@@ -27,10 +27,10 @@ enum PaymentMethod {
   }
 
   String get label => switch (this) {
-    PaymentMethod.cash => 'Cash',
-    PaymentMethod.card => 'Card',
-    PaymentMethod.bankTransfer => 'Bank transfer',
-    PaymentMethod.credit => 'Credit',
+    PaymentMethod.cash => 'Cash / नगद',
+    PaymentMethod.card => 'Card or QR payment',
+    PaymentMethod.bankTransfer => 'Bank or wallet transfer',
+    PaymentMethod.credit => 'Credit / उधारो',
   };
 }
 

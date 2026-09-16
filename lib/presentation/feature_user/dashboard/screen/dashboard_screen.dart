@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/core.dart';
 import '../../../../data/models/models_user/summary_report_model.dart';
 import '../../../feature_shared/auth/controller/auth_controller.dart';
+import '../../shell/controllers/sidebar_controller.dart';
+import '../../shell/models/sidebar_menu_registry.dart';
 import '../controllers/dashboard_controller.dart';
 import '../widgets/dashboard_report_card.dart';
+import '../widgets/dashboard_quick_actions.dart';
 import '../widgets/dashboard_section.dart';
 import '../widgets/dashboard_stock_card.dart';
 
@@ -20,8 +23,24 @@ class DashboardScreen extends ConsumerWidget {
     final purchases = ref.watch(dashboardPurchasesProvider(range));
     final stock = ref.watch(dashboardStockProvider);
     final auth = ref.watch(authControllerProvider);
+    final sidebar = ref.watch(sidebarControllerProvider);
     final name = auth is AuthAuthenticated ? auth.session.displayName : 'Staff';
     final loading = sales.isLoading || purchases.isLoading || stock.isLoading;
+    final hasNoTrackedProducts = stock.when(
+      data: (overview) => overview.trackedProducts == 0,
+      loading: () => false,
+      error: (_, _) => false,
+    );
+    final allowedPaths = <String>{
+      for (final section in sidebar.sections)
+        for (final entry in section.entries)
+          ...switch (entry) {
+            ResolvedSidebarLink() => [entry.path],
+            ResolvedSidebarGroup() => [
+              for (final child in entry.children) child.path,
+            ],
+          },
+    };
 
     Future<void> refresh() async {
       // Start all three requests before awaiting. Errors are rendered in each
@@ -88,6 +107,12 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
+                DashboardQuickActions(allowedPaths: allowedPaths),
+                const SizedBox(height: AppSpacing.lg),
+                if (hasNoTrackedProducts) ...[
+                  DashboardSetupCard(allowedPaths: allowedPaths),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [

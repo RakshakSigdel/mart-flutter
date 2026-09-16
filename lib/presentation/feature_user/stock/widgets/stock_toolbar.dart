@@ -123,7 +123,7 @@ class _LowOnlyToggle extends StatelessWidget {
             children: [
               Switch(value: value, onChanged: onChanged),
               const SizedBox(width: AppSpacing.xs),
-              Text('Low stock only', style: AppTypography.label),
+              Text('Needs ordering', style: AppTypography.label),
             ],
           ),
         ),

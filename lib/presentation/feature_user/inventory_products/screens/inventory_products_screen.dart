@@ -60,7 +60,7 @@ class _InventoryProductsScreenState
   Future<void> _addProduct() async {
     final result = await context.push<bool>(Routes.inventoryProductNew);
     if (result == true && mounted) {
-      AppSnackBar.success(context, 'Product added.');
+      AppSnackBar.success(context, 'Product added and ready to sell.');
     }
   }
 
@@ -232,9 +232,9 @@ class _InventoryProductsScreenState
         icon: Icons.inventory_outlined,
         title: state.search.isEmpty ? 'No products yet' : 'No results found',
         message: state.search.isEmpty
-            ? 'Add your first product to get started.'
+            ? 'Add your first product in a few simple steps.'
             : 'Try a different search or clear your filters.',
-        actionLabel: state.search.isEmpty ? 'Add product' : null,
+        actionLabel: state.search.isEmpty ? 'Quick add product' : null,
         onAction: state.search.isEmpty ? _addProduct : null,
       );
     }

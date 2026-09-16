@@ -32,7 +32,12 @@ class InventoryProductPurchaseUnitSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text('Purchase units', style: AppTypography.subtitle)),
+              const Expanded(
+                child: Text(
+                  'Supplier packs & cost',
+                  style: AppTypography.subtitle,
+                ),
+              ),
               AppButton(
                 label: 'Add',
                 size: AppButtonSize.sm,
@@ -43,9 +48,14 @@ class InventoryProductPurchaseUnitSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.smMd),
+          const Text(
+            'Optional: add this only when you buy cartons, boxes or other packs.',
+            style: AppTypography.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.smMd),
           if (units.isEmpty)
             Text(
-              'No purchase units configured yet.',
+              'No supplier packs added yet.',
               style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
             )
           else
