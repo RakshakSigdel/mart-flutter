@@ -73,6 +73,7 @@ class _SaleFormState extends ConsumerState<SaleForm> {
   /// The customer selected from the existing-customer dropdown.
   /// Null when using freehand entry.
   CustomerModel? _selectedCustomer;
+  bool _showCustomerDetails = false;
 
   int _nextRowId = 0;
   final Map<int, SaleLineItemData> _rows = {};
@@ -168,8 +169,11 @@ class _SaleFormState extends ConsumerState<SaleForm> {
         _selectedCustomer == null &&
         _customerNameController.text.trim().isEmpty) {
       setState(
-        () => _errorMessage =
-            'Choose or enter a customer before recording a credit sale.',
+        () {
+          _showCustomerDetails = true;
+          _errorMessage =
+              'Choose or enter a customer before recording a credit sale.';
+        },
       );
       return;
     }
@@ -320,7 +324,14 @@ class _SaleFormState extends ConsumerState<SaleForm> {
                 DropdownMenuItem(value: method, child: Text(method.label)),
             ],
             onChanged: (value) {
-              if (value != null) setState(() => _paymentMethod = value);
+              if (value != null) {
+                setState(() {
+                  _paymentMethod = value;
+                  if (value == PaymentMethod.credit) {
+                    _showCustomerDetails = true;
+                  }
+                });
+              }
             },
           ),
           const SizedBox(height: AppSpacing.smMd),
@@ -392,99 +403,128 @@ class _SaleFormState extends ConsumerState<SaleForm> {
           ],
           const SizedBox(height: AppSpacing.lg),
 
-          // ── Customer section ──────────────────────────────────────────────
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _paymentMethod == PaymentMethod.credit
-                      ? 'Customer for credit / उधारो'
-                      : 'Customer (optional)',
-                  style: AppTypography.subtitle,
-                ),
+          // Customer details stay out of the normal cash-sale path, but are
+          // surfaced automatically when credit requires a customer.
+          DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
+              borderRadius: AppBorderRadius.radiusL,
+            ),
+            child: ExpansionTile(
+              key: ValueKey(
+                'customer-details-${_paymentMethod.name}-$_showCustomerDetails',
               ),
-              if (_selectedCustomer != null)
-                TextButton.icon(
-                  onPressed: _submitting ? null : _clearCustomer,
-                  icon: const Icon(Icons.close, size: 16),
-                  label: const Text('Clear'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textMuted,
-                    padding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
+              enabled: !_submitting,
+              tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              title: Text(
+                _paymentMethod == PaymentMethod.credit
+                    ? 'Customer details'
+                    : 'Customer details (optional)',
+                style: AppTypography.body,
+              ),
+              subtitle: Text(
+                _paymentMethod == PaymentMethod.credit
+                    ? 'Required for a credit sale.'
+                    : 'Add a saved customer or enter their details.',
+                style: AppTypography.bodySmall,
+              ),
+              initiallyExpanded: _showCustomerDetails,
+              onExpansionChanged: (expanded) =>
+                  setState(() => _showCustomerDetails = expanded),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.md,
+                  ),
+                  child: Column(
+                    children: [
+                      if (_selectedCustomer != null)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: _submitting ? null : _clearCustomer,
+                            icon: const Icon(Icons.close, size: 16),
+                            label: const Text('Clear'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.textMuted,
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                        ),
+                      AppSearchableDropdownField<CustomerModel>(
+                        label: 'Find saved customer',
+                        selectedItem: _selectedCustomer,
+                        hint: 'Search by name or phone...',
+                        searchHint: 'Type to search customers...',
+                        asyncItems: (filter) async {
+                          final ds = ref.read(customerRemoteDataSourceProvider);
+                          final page = await ds.list(
+                            search: filter.isEmpty ? null : filter,
+                            size: 30,
+                          );
+                          return page.content;
+                        },
+                        itemLabel: (c) =>
+                            c.phone != null ? '${c.name} (${c.phone})' : c.name,
+                        onChanged: _submitting ? (_) {} : _onCustomerSelected,
+                      ),
+                      const SizedBox(height: AppSpacing.smMd),
+                      AppTextField(
+                        controller: _customerNameController,
+                        label: 'Customer name',
+                        enabled: !_submitting,
+                        onChanged: (_) {
+                          if (_selectedCustomer != null) {
+                            setState(() => _selectedCustomer = null);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.smMd),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppTextField(
+                              controller: _customerPhoneController,
+                              label: 'Phone number',
+                              keyboardType: TextInputType.phone,
+                              enabled: !_submitting,
+                              onChanged: (_) {
+                                if (_selectedCustomer != null) {
+                                  setState(() => _selectedCustomer = null);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.smMd),
+                          Expanded(
+                            child: AppTextField(
+                              controller: _customerPanController,
+                              label: 'PAN',
+                              enabled: !_submitting,
+                              onChanged: (_) {
+                                if (_selectedCustomer != null) {
+                                  setState(() => _selectedCustomer = null);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.smMd),
+                      AppTextField.multiline(
+                        controller: _remarkController,
+                        label: 'Note (optional)',
+                        enabled: !_submitting,
+                      ),
+                    ],
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-
-          // Existing-customer searchable picker
-          AppSearchableDropdownField<CustomerModel>(
-            label: 'Find saved customer',
-            selectedItem: _selectedCustomer,
-            hint: 'Search by name or phone...',
-            searchHint: 'Type to search customers...',
-            asyncItems: (filter) async {
-              final ds = ref.read(customerRemoteDataSourceProvider);
-              final page = await ds.list(
-                search: filter.isEmpty ? null : filter,
-                size: 30,
-              );
-              return page.content;
-            },
-            itemLabel: (c) =>
-                c.phone != null ? '${c.name} (${c.phone})' : c.name,
-            onChanged: _submitting ? (_) {} : _onCustomerSelected,
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-
-          // Manual fields — pre-filled from picker, still editable
-          AppTextField(
-            controller: _customerNameController,
-            label: 'Customer name',
-            enabled: !_submitting,
-            onChanged: (_) {
-              if (_selectedCustomer != null) {
-                setState(() => _selectedCustomer = null);
-              }
-            },
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          Row(
-            children: [
-              Expanded(
-                child: AppTextField(
-                  controller: _customerPhoneController,
-                  label: 'Phone number',
-                  keyboardType: TextInputType.phone,
-                  enabled: !_submitting,
-                  onChanged: (_) {
-                    if (_selectedCustomer != null) {
-                      setState(() => _selectedCustomer = null);
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: AppSpacing.smMd),
-              Expanded(
-                child: AppTextField(
-                  controller: _customerPanController,
-                  label: 'PAN',
-                  enabled: !_submitting,
-                  onChanged: (_) {
-                    if (_selectedCustomer != null) {
-                      setState(() => _selectedCustomer = null);
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          AppTextField.multiline(
-            controller: _remarkController,
-            label: 'Note (optional)',
-            enabled: !_submitting,
+              ],
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
 

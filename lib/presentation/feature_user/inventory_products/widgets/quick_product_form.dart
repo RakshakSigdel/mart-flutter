@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -32,6 +33,8 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
   final _purchaseVat = TextEditingController(text: '0');
   final _additionalSellingQuantity = TextEditingController();
   final _additionalSellingPrice = TextEditingController();
+  final _priceFocus = FocusNode();
+  final _barcodeFocus = FocusNode();
 
   InventoryCategoryModel? _category;
   InventoryUnitModel? _sellingUnit;
@@ -41,6 +44,8 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
   bool _addSellingSize = false;
   bool _saving = false;
   String? _error;
+  String _hardwareScanBuffer = '';
+  DateTime? _lastHardwareScanKey;
 
   @override
   void initState() {
@@ -50,6 +55,7 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
           .read(inventoryProductsControllerProvider.notifier)
           .ensureUnitOptionsLoaded(),
     );
+    HardwareKeyboard.instance.addHandler(_handleHardwareScannerInput);
   }
 
   @override
@@ -62,7 +68,56 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
     _purchaseVat.dispose();
     _additionalSellingQuantity.dispose();
     _additionalSellingPrice.dispose();
+    _priceFocus.dispose();
+    _barcodeFocus.dispose();
+    HardwareKeyboard.instance.removeHandler(_handleHardwareScannerInput);
     super.dispose();
+  }
+
+  /// Handheld scanners usually behave as a keyboard. When one scans while
+  /// the selling-price field is focused, its rapid, Enter-terminated value
+  /// belongs in Barcode rather than in the price.
+  bool _handleHardwareScannerInput(KeyEvent event) {
+    if (!_priceFocus.hasFocus || event is! KeyDownEvent) return false;
+
+    final now = DateTime.now();
+    if (event.logicalKey == LogicalKeyboardKey.enter) {
+      final isScannerInput =
+          _hardwareScanBuffer.length >= 6 &&
+          _lastHardwareScanKey != null &&
+          now.difference(_lastHardwareScanKey!) < const Duration(milliseconds: 150);
+      final barcode = _hardwareScanBuffer;
+      _hardwareScanBuffer = '';
+      _lastHardwareScanKey = null;
+
+      if (isScannerInput) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _price.clear();
+            _barcode.text = barcode;
+          });
+          _barcodeFocus.requestFocus();
+        });
+        return true;
+      }
+      return false;
+    }
+
+    final character = event.character;
+    if (character == null || character.isEmpty) {
+      _hardwareScanBuffer = '';
+      _lastHardwareScanKey = null;
+      return false;
+    }
+
+    if (_lastHardwareScanKey == null ||
+        now.difference(_lastHardwareScanKey!) > const Duration(milliseconds: 80)) {
+      _hardwareScanBuffer = '';
+    }
+    _hardwareScanBuffer += character;
+    _lastHardwareScanKey = now;
+    return false;
   }
 
   InventoryUnitModel? _baseUnitFor(List<InventoryUnitModel> units) {
@@ -94,9 +149,7 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
   }
 
   Future<void> _scanBarcode() async {
-    final barcode = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
-    );
+    final barcode = await showBarcodeScannerSheet(context);
     if (barcode == null || !mounted) return;
     setState(() => _barcode.text = barcode);
   }
@@ -355,6 +408,7 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
             label: 'Selling price (Rs.)',
             hint: 'e.g. 20',
             enabled: !_saving,
+            focusNode: _priceFocus,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             validator: (value) {
               final price = double.tryParse((value ?? '').trim());
@@ -367,6 +421,7 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
             label: 'Barcode (optional)',
             hint: 'Enter barcode manually',
             enabled: !_saving,
+            focusNode: _barcodeFocus,
             suffixIcon: Icons.qr_code_scanner_outlined,
             onSuffixTap: _saving ? null : _scanBarcode,
           ),

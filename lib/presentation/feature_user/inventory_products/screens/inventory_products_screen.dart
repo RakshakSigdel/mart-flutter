@@ -9,6 +9,7 @@ import '../../../../data/models/models_user/inventory_units_model.dart'
     show formatUnitValue;
 import '../controllers/inventory_products_controller.dart';
 import '../widgets/inventory_products_confirm_dialog.dart';
+import '../widgets/barcode_scanner_screen.dart';
 import '../widgets/inventory_products_list_card.dart';
 import '../widgets/inventory_products_pagination_bar.dart';
 import '../widgets/inventory_products_row_actions.dart';
@@ -73,8 +74,14 @@ class _InventoryProductsScreenState
         content: AppTextField(
           controller: barcodeController,
           label: 'Barcode',
+          hint: 'Enter barcode manually',
           autofocus: true,
           textInputAction: TextInputAction.search,
+          suffixIcon: Icons.qr_code_scanner_outlined,
+          onSuffixTap: () async {
+            final scanned = await showBarcodeScannerSheet(dialogContext);
+            if (scanned != null) barcodeController.text = scanned;
+          },
           onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
         ),
         actions: [

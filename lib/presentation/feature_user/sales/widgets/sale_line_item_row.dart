@@ -7,6 +7,7 @@ import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_shared/commerce_model.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
 import '../../../../providers/providers_user/inventory_products_provider.dart';
+import '../../inventory_products/widgets/barcode_scanner_screen.dart';
 
 /// A snapshot of one line item row's editable state — what
 /// `SaleLineItemRow` reports up to the form on every change, so the form
@@ -63,6 +64,7 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
   final _quantityController = TextEditingController();
   final _rateController = TextEditingController();
   final _discountController = TextEditingController();
+  final _barcodeController = TextEditingController();
   final _productFocus = FocusNode();
   final _sellingUnitFocus = FocusNode();
   final _quantityFocus = FocusNode();
@@ -87,6 +89,7 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
     _quantityController.dispose();
     _rateController.dispose();
     _discountController.dispose();
+    _barcodeController.dispose();
     _productFocus.dispose();
     _sellingUnitFocus.dispose();
     _quantityFocus.dispose();
@@ -106,6 +109,26 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
     } on ApiException {
       return const [];
     }
+  }
+
+  Future<void> _findProductByBarcode(String barcode) async {
+    final value = barcode.trim();
+    if (value.isEmpty) return;
+
+    final products = await _searchProducts(value);
+    if (!mounted) return;
+    if (products.isEmpty) {
+      AppSnackBar.error(context, 'No product found for this barcode.');
+      return;
+    }
+    await _onProductSelected(products.first);
+  }
+
+  Future<void> _scanBarcode() async {
+    final barcode = await showBarcodeScannerSheet(context);
+    if (barcode == null || !mounted) return;
+    _barcodeController.text = barcode;
+    await _findProductByBarcode(barcode);
   }
 
   Future<void> _onProductSelected(ProductModel? product) async {
@@ -187,6 +210,16 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          AppTextField(
+            controller: _barcodeController,
+            label: 'Barcode',
+            hint: 'Enter barcode manually',
+            textInputAction: TextInputAction.search,
+            suffixIcon: Icons.qr_code_scanner_outlined,
+            onSuffixTap: _scanBarcode,
+            onSubmitted: _findProductByBarcode,
+          ),
+          const SizedBox(height: AppSpacing.smMd),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -153,6 +153,7 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
                 : null,
 
             searchFieldProps: TextFieldProps(
+              autofocus: true,
               decoration: InputDecoration(
                 hintText: searchHint,
                 hintStyle: AppTypography.bodySmall.copyWith(
