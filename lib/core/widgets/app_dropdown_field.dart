@@ -19,6 +19,8 @@ class AppDropdownField<T> extends StatelessWidget {
     this.hint,
     this.validator,
     this.enabled = true,
+    this.focusNode,
+    this.autofocus = false,
   });
 
   final String? label;
@@ -28,6 +30,8 @@ class AppDropdownField<T> extends StatelessWidget {
   final String? hint;
   final String? Function(T?)? validator;
   final bool enabled;
+  final FocusNode? focusNode;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +40,8 @@ class AppDropdownField<T> extends StatelessWidget {
       items: items,
       onChanged: enabled ? onChanged : null,
       validator: validator,
+      focusNode: focusNode,
+      autofocus: autofocus,
       style: AppTypography.body,
       // Without this, the closed field's intrinsic width follows the widest
       // item's natural width (Flutter measures every item off-stage for the

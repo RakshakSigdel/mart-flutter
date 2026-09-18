@@ -48,10 +48,12 @@ class SaleLineItemRow extends ConsumerStatefulWidget {
     super.key,
     required this.onChanged,
     required this.onRemove,
+    this.autofocusProduct = false,
   });
 
   final ValueChanged<SaleLineItemData> onChanged;
   final VoidCallback onRemove;
+  final bool autofocusProduct;
 
   @override
   ConsumerState<SaleLineItemRow> createState() => _SaleLineItemRowState();
@@ -61,6 +63,9 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
   final _quantityController = TextEditingController();
   final _rateController = TextEditingController();
   final _discountController = TextEditingController();
+  final _productFocus = FocusNode();
+  final _sellingUnitFocus = FocusNode();
+  final _quantityFocus = FocusNode();
 
   ProductModel? _product;
   ProductSellingUnitModel? _unit;
@@ -68,10 +73,23 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
   bool _loadingUnits = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.autofocusProduct) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _productFocus.requestFocus(),
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _quantityController.dispose();
     _rateController.dispose();
     _discountController.dispose();
+    _productFocus.dispose();
+    _sellingUnitFocus.dispose();
+    _quantityFocus.dispose();
     super.dispose();
   }
 
@@ -125,6 +143,10 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
         _rateController.text = formatMoneyAmount(selected.sellingPrice);
       }
       _notify();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        (units.isEmpty ? _quantityFocus : _sellingUnitFocus).requestFocus();
+      });
     } on ApiException {
       if (!mounted) return;
       setState(() => _loadingUnits = false);
@@ -137,6 +159,7 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
       _rateController.text = formatMoneyAmount(unit.sellingPrice);
     }
     _notify();
+    _quantityFocus.requestFocus();
   }
 
   void _notify() {
@@ -177,6 +200,8 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
                       : '${p.name} (${p.productCode})',
                   hint: 'Search by name or code',
                   onChanged: _onProductSelected,
+                  autofocus: widget.autofocusProduct,
+                  focusNode: _productFocus,
                 ),
               ),
               IconButton(
@@ -211,6 +236,7 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
                   ),
               ],
               onChanged: _onUnitSelected,
+              focusNode: _sellingUnitFocus,
             ),
             const SizedBox(height: AppSpacing.smMd),
           ],
@@ -227,6 +253,7 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
                   ],
+                  focusNode: _quantityFocus,
                   onChanged: (_) => _notify(),
                 ),
               ),

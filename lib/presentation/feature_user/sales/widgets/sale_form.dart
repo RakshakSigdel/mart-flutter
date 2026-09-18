@@ -27,6 +27,35 @@ class SaleForm extends ConsumerStatefulWidget {
   ConsumerState<SaleForm> createState() => _SaleFormState();
 }
 
+/// Moves through the till without requiring a mouse or Tab key. Up/down
+/// intentionally leave left/right alone: those arrows still edit a number
+/// field's caret and navigate an open menu as users expect.
+class _PosMoveFocusIntent extends Intent {
+  const _PosMoveFocusIntent(this.forward);
+
+  final bool forward;
+}
+
+class _PosMoveFocusAction extends Action<_PosMoveFocusIntent> {
+  _PosMoveFocusAction(this.scope);
+
+  final FocusScopeNode scope;
+
+  @override
+  Object? invoke(_PosMoveFocusIntent intent) {
+    if (intent.forward) {
+      scope.nextFocus();
+    } else {
+      scope.previousFocus();
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final focusContext = FocusManager.instance.primaryFocus?.context;
+      if (focusContext != null) Scrollable.ensureVisible(focusContext);
+    });
+    return null;
+  }
+}
+
 class _SaleFormState extends ConsumerState<SaleForm> {
   final _formKey = GlobalKey<FormState>();
   final _tenderedController = TextEditingController();
@@ -35,6 +64,9 @@ class _SaleFormState extends ConsumerState<SaleForm> {
   final _customerPhoneController = TextEditingController();
   final _customerPanController = TextEditingController();
   final _remarkController = TextEditingController();
+  final _posScope = FocusScopeNode(
+    traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+  );
 
   PaymentMethod _paymentMethod = PaymentMethod.cash;
 
@@ -62,6 +94,7 @@ class _SaleFormState extends ConsumerState<SaleForm> {
     _customerPhoneController.dispose();
     _customerPanController.dispose();
     _remarkController.dispose();
+    _posScope.dispose();
     super.dispose();
   }
 
@@ -203,9 +236,23 @@ class _SaleFormState extends ConsumerState<SaleForm> {
   Widget build(BuildContext context) {
     final change = _estimatedChange;
 
-    return Form(
-      key: _formKey,
-      child: Column(
+    return Shortcuts(
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.arrowDown): _PosMoveFocusIntent(true),
+        SingleActivator(LogicalKeyboardKey.arrowUp): _PosMoveFocusIntent(false),
+      },
+      child: Actions(
+        actions: {
+          _PosMoveFocusIntent: _PosMoveFocusAction(_posScope),
+        },
+        child: FocusScope(
+          node: _posScope,
+          autofocus: true,
+          child: FocusTraversalGroup(
+            policy: WidgetOrderTraversalPolicy(),
+            child: Form(
+              key: _formKey,
+              child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
@@ -223,6 +270,11 @@ class _SaleFormState extends ConsumerState<SaleForm> {
                 Text(
                   '1. Add products  2. Take payment  3. Save the bill',
                   style: AppTypography.bodySmall,
+                ),
+                SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Keyboard: ↑/↓ move · Enter select or act · Esc closes menus',
+                  style: AppTypography.caption,
                 ),
               ],
             ),
@@ -253,6 +305,7 @@ class _SaleFormState extends ConsumerState<SaleForm> {
               key: ValueKey(entry.key),
               onChanged: (data) => setState(() => _rows[entry.key] = data),
               onRemove: () => _removeRow(entry.key),
+              autofocusProduct: entry.key == _rows.keys.last,
             ),
             const SizedBox(height: AppSpacing.smMd),
           ],
@@ -478,6 +531,10 @@ class _SaleFormState extends ConsumerState<SaleForm> {
           ),
           const SizedBox(height: AppSpacing.xl),
         ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -10,6 +10,7 @@ import '../../../../data/models/models_user/inventory_units_model.dart';
 import '../../../../providers/providers_user/inventory_categories_provider.dart';
 import '../../../../providers/providers_user/inventory_products_provider.dart';
 import '../controllers/inventory_products_controller.dart';
+import 'barcode_scanner_screen.dart';
 
 /// The everyday catalogue entry point. It asks for the four things a
 /// shopkeeper knows at the shelf, then creates the product and its default
@@ -26,9 +27,18 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
   final _name = TextEditingController();
   final _price = TextEditingController();
   final _barcode = TextEditingController();
+  final _purchasePackQuantity = TextEditingController();
+  final _purchaseCost = TextEditingController();
+  final _purchaseVat = TextEditingController(text: '0');
+  final _additionalSellingQuantity = TextEditingController();
+  final _additionalSellingPrice = TextEditingController();
 
   InventoryCategoryModel? _category;
   InventoryUnitModel? _sellingUnit;
+  InventoryUnitModel? _purchaseUnit;
+  InventoryUnitModel? _additionalSellingUnit;
+  bool _addPurchasePack = false;
+  bool _addSellingSize = false;
   bool _saving = false;
   String? _error;
 
@@ -47,6 +57,11 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
     _name.dispose();
     _price.dispose();
     _barcode.dispose();
+    _purchasePackQuantity.dispose();
+    _purchaseCost.dispose();
+    _purchaseVat.dispose();
+    _additionalSellingQuantity.dispose();
+    _additionalSellingPrice.dispose();
     super.dispose();
   }
 
@@ -62,6 +77,14 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
     return null;
   }
 
+  List<InventoryUnitModel> _compatibleUnits(List<InventoryUnitModel> units) {
+    final sellingUnit = _sellingUnit;
+    if (sellingUnit == null) return const [];
+    return units
+        .where((unit) => unit.measurementType == sellingUnit.measurementType)
+        .toList();
+  }
+
   Future<void> _addCategory() async {
     final added = await context.push<bool>(Routes.inventoryCategoryNew);
     if (added != true || !mounted) return;
@@ -70,21 +93,27 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
         .refreshCategoryOptions();
   }
 
-  Future<void> _allowSellingUnit(
+  Future<void> _scanBarcode() async {
+    final barcode = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+    );
+    if (barcode == null || !mounted) return;
+    setState(() => _barcode.text = barcode);
+  }
+
+  Future<void> _allowUnit(
     InventoryCategoryModel category,
-    InventoryUnitModel sellingUnit,
+    InventoryUnitModel unit,
+    CategoryUnitUsage usage,
   ) async {
     final categories = ref.read(inventoryCategoriesRemoteDataSourceProvider);
-    final allowed = await categories.unitsForUsage(
-      category.id,
-      CategoryUnitUsage.selling,
-    );
-    if (allowed.any((unit) => unit.id == sellingUnit.id)) return;
+    final allowed = await categories.unitsForUsage(category.id, usage);
+    if (allowed.any((allowedUnit) => allowedUnit.id == unit.id)) return;
     await categories.assignUnit(
       category.id,
       AssignCategoryUnitRequest(
-        unitId: sellingUnit.id,
-        usage: CategoryUnitUsage.selling,
+        unitId: unit.id,
+        usage: usage,
       ),
     );
   }
@@ -96,6 +125,15 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
     final sellingUnit = _sellingUnit;
     final baseUnit = _baseUnitFor(units);
     final price = double.tryParse(_price.text.trim());
+    final purchasePackQuantity = double.tryParse(_purchasePackQuantity.text.trim());
+    final purchaseCost = double.tryParse(_purchaseCost.text.trim());
+    final purchaseVat = double.tryParse(_purchaseVat.text.trim());
+    final additionalSellingQuantity = double.tryParse(
+      _additionalSellingQuantity.text.trim(),
+    );
+    final additionalSellingPrice = double.tryParse(
+      _additionalSellingPrice.text.trim(),
+    );
     if (category == null || sellingUnit == null) {
       setState(() => _error = 'Choose a category and how this product is sold.');
       return;
@@ -111,6 +149,30 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
       setState(() => _error = 'Enter a valid selling price.');
       return;
     }
+    if (_addPurchasePack &&
+        (_purchaseUnit == null ||
+            purchasePackQuantity == null ||
+            purchasePackQuantity <= 0 ||
+            purchaseCost == null ||
+            purchaseCost < 0 ||
+            purchaseVat == null ||
+            purchaseVat < 0)) {
+      setState(
+        () => _error =
+            'Complete the supplier pack with its unit, quantity, cost and VAT.',
+      );
+      return;
+    }
+    if (_addSellingSize &&
+        (_additionalSellingUnit == null ||
+            additionalSellingQuantity == null ||
+            additionalSellingQuantity <= 0 ||
+            additionalSellingPrice == null ||
+            additionalSellingPrice < 0)) {
+      setState(
+        () => _error = 'Complete the extra selling size with its unit, quantity and price.');
+      return;
+    }
 
     setState(() {
       _saving = true;
@@ -121,7 +183,21 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
     final dataSource = ref.read(inventoryProductsRemoteDataSourceProvider);
     ProductModel? product;
     try {
-      await _allowSellingUnit(category, sellingUnit);
+      await _allowUnit(category, sellingUnit, CategoryUnitUsage.selling);
+      if (_addPurchasePack) {
+        await _allowUnit(
+          category,
+          _purchaseUnit!,
+          CategoryUnitUsage.purchase,
+        );
+      }
+      if (_addSellingSize) {
+        await _allowUnit(
+          category,
+          _additionalSellingUnit!,
+          CategoryUnitUsage.selling,
+        );
+      }
       product = await controller.createProduct(
         CreateProductRequest(
           name: _name.text.trim(),
@@ -140,6 +216,31 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
           isDefault: true,
         ),
       );
+      if (_addPurchasePack) {
+        await dataSource.addPurchaseUnit(
+          product.id,
+          CreatePurchaseUnitRequest(
+            unitId: _purchaseUnit!.id,
+            packQuantity: purchasePackQuantity!,
+            purchasePrice: purchaseCost!,
+            active: true,
+            isDefault: true,
+            vat: OpenVatRateRequest(rate: purchaseVat!),
+          ),
+        );
+      }
+      if (_addSellingSize) {
+        await dataSource.addSellingUnit(
+          product.id,
+          CreateSellingUnitRequest(
+            unitId: _additionalSellingUnit!.id,
+            packQuantity: additionalSellingQuantity!,
+            sellingPrice: additionalSellingPrice!,
+            active: true,
+            isDefault: false,
+          ),
+        );
+      }
       await controller.refresh();
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
@@ -147,8 +248,8 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
         setState(
           () => _error = product == null
               ? e.message
-              : 'Product was saved, but its selling price could not be added. '
-                    'Open product details and add the selling unit there.',
+              : 'Product was saved, but one or more prices or pack details '
+                    'could not be added. Open product details to finish them.',
         );
       }
     } finally {
@@ -181,13 +282,20 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
                 Text('Add a product quickly', style: AppTypography.title),
                 SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Enter what you sell and its price. Supplier packaging can be added later.',
+                  'Start with the main item. Supplier packs and extra selling sizes are optional.',
                   style: AppTypography.bodySmall,
                 ),
               ],
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
+          const Text('Main item', style: AppTypography.subtitle),
+          const SizedBox(height: AppSpacing.xs),
+          const Text(
+            'Required details for the product customers buy one at a time.',
+            style: AppTypography.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.smMd),
           AppTextField(
             controller: _name,
             label: 'Product name',
@@ -229,7 +337,16 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
             hint: units.isEmpty ? 'Loading units...' : 'Piece, packet, kg...',
             onChanged: _saving
                 ? (_) {}
-                : (unit) => setState(() => _sellingUnit = unit),
+                : (unit) => setState(() {
+                    _sellingUnit = unit;
+                    if (_purchaseUnit?.measurementType != unit?.measurementType) {
+                      _purchaseUnit = null;
+                    }
+                    if (_additionalSellingUnit?.measurementType !=
+                        unit?.measurementType) {
+                      _additionalSellingUnit = null;
+                    }
+                  }),
             validator: (value) => value == null ? 'Choose how it is sold.' : null,
           ),
           const SizedBox(height: AppSpacing.smMd),
@@ -245,17 +362,49 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
             },
           ),
           const SizedBox(height: AppSpacing.smMd),
-          ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            title: const Text('Barcode (optional)'),
-            subtitle: const Text('Add it now only if you have it.'),
-            children: [
-              AppTextField(
-                controller: _barcode,
-                label: 'Barcode',
-                enabled: !_saving,
-              ),
-            ],
+          AppTextField(
+            controller: _barcode,
+            label: 'Barcode (optional)',
+            hint: 'Enter barcode manually',
+            enabled: !_saving,
+            suffixIcon: Icons.qr_code_scanner_outlined,
+            onSuffixTap: _saving ? null : _scanBarcode,
+          ),
+          const SizedBox(height: AppSpacing.smMd),
+          _OptionalDetailsSection(
+            title: 'Supplier pack & cost',
+            subtitle: 'Optional — add the pack you buy from suppliers.',
+            isExpanded: _addPurchasePack,
+            onExpansionChanged: _saving
+                ? null
+                : (expanded) => setState(() => _addPurchasePack = expanded),
+            child: _SupplierPackFields(
+              units: _compatibleUnits(units),
+              selectedUnit: _purchaseUnit,
+              packQuantity: _purchasePackQuantity,
+              cost: _purchaseCost,
+              vat: _purchaseVat,
+              enabled: !_saving,
+              onUnitChanged: (unit) => setState(() => _purchaseUnit = unit),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.smMd),
+          _OptionalDetailsSection(
+            title: 'Extra selling size & price',
+            subtitle: 'Optional — sell the same product in another size.',
+            isExpanded: _addSellingSize,
+            onExpansionChanged: _saving
+                ? null
+                : (expanded) => setState(() => _addSellingSize = expanded),
+            child: _AdditionalSellingFields(
+              units: _compatibleUnits(units),
+              selectedUnit: _additionalSellingUnit,
+              quantity: _additionalSellingQuantity,
+              price: _additionalSellingPrice,
+              enabled: !_saving,
+              onUnitChanged: (unit) =>
+                  setState(() => _additionalSellingUnit = unit),
+            ),
           ),
           AppFormError(message: _error),
           const SizedBox(height: AppSpacing.xl),
@@ -266,12 +415,167 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
           ),
           const SizedBox(height: AppSpacing.smMd),
           const Text(
-            'Need cartons, purchase prices or a different selling pack? Add those later from product details.',
+            'You can always add more packs and selling sizes from product details.',
             textAlign: TextAlign.center,
             style: AppTypography.caption,
           ),
         ],
       ),
+    );
+  }
+}
+
+class _OptionalDetailsSection extends StatelessWidget {
+  const _OptionalDetailsSection({
+    required this.title,
+    required this.subtitle,
+    required this.isExpanded,
+    required this.onExpansionChanged,
+    required this.child,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool isExpanded;
+  final ValueChanged<bool>? onExpansionChanged;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: AppBorderRadius.radiusL,
+      ),
+      child: ExpansionTile(
+        enabled: onExpansionChanged != null,
+        tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        title: Text(title, style: AppTypography.body),
+        subtitle: Text(subtitle, style: AppTypography.bodySmall),
+        initiallyExpanded: isExpanded,
+        onExpansionChanged: onExpansionChanged,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.md,
+            ),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SupplierPackFields extends StatelessWidget {
+  const _SupplierPackFields({
+    required this.units,
+    required this.selectedUnit,
+    required this.packQuantity,
+    required this.cost,
+    required this.vat,
+    required this.enabled,
+    required this.onUnitChanged,
+  });
+
+  final List<InventoryUnitModel> units;
+  final InventoryUnitModel? selectedUnit;
+  final TextEditingController packQuantity;
+  final TextEditingController cost;
+  final TextEditingController vat;
+  final bool enabled;
+  final ValueChanged<InventoryUnitModel?> onUnitChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        AppSearchableDropdownField<InventoryUnitModel>(
+          label: 'Supplier pack unit',
+          selectedItem: selectedUnit,
+          items: units,
+          itemLabel: (unit) => '${unit.name} (${unit.symbol})',
+          hint: units.isEmpty ? 'Choose the main selling unit first' : 'e.g. carton',
+          onChanged: enabled ? onUnitChanged : (_) {},
+        ),
+        const SizedBox(height: AppSpacing.smMd),
+        AppTextField(
+          controller: packQuantity,
+          label: 'Items in this pack',
+          hint: 'e.g. 12',
+          enabled: enabled,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        const SizedBox(height: AppSpacing.smMd),
+        AppTextField(
+          controller: cost,
+          label: 'Supplier cost (Rs.)',
+          hint: 'e.g. 180',
+          enabled: enabled,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        const SizedBox(height: AppSpacing.smMd),
+        AppTextField(
+          controller: vat,
+          label: 'VAT rate (%)',
+          hint: '0',
+          enabled: enabled,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+      ],
+    );
+  }
+}
+
+class _AdditionalSellingFields extends StatelessWidget {
+  const _AdditionalSellingFields({
+    required this.units,
+    required this.selectedUnit,
+    required this.quantity,
+    required this.price,
+    required this.enabled,
+    required this.onUnitChanged,
+  });
+
+  final List<InventoryUnitModel> units;
+  final InventoryUnitModel? selectedUnit;
+  final TextEditingController quantity;
+  final TextEditingController price;
+  final bool enabled;
+  final ValueChanged<InventoryUnitModel?> onUnitChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        AppSearchableDropdownField<InventoryUnitModel>(
+          label: 'Selling unit',
+          selectedItem: selectedUnit,
+          items: units,
+          itemLabel: (unit) => '${unit.name} (${unit.symbol})',
+          hint: units.isEmpty ? 'Choose the main selling unit first' : 'e.g. carton',
+          onChanged: enabled ? onUnitChanged : (_) {},
+        ),
+        const SizedBox(height: AppSpacing.smMd),
+        AppTextField(
+          controller: quantity,
+          label: 'Items in this size',
+          hint: 'e.g. 12',
+          enabled: enabled,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        const SizedBox(height: AppSpacing.smMd),
+        AppTextField(
+          controller: price,
+          label: 'Selling price (Rs.)',
+          hint: 'e.g. 240',
+          enabled: enabled,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+      ],
     );
   }
 }

@@ -42,6 +42,9 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
   final String searchHint;
   final String? Function(T?)? validator;
   final bool Function(T)? itemDisabled;
+  final FocusNode? focusNode;
+  final bool autofocus;
+  final bool showClearButton;
 
   const AppSearchableDropdownField({
     super.key,
@@ -57,6 +60,9 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
     this.searchHint = 'Search...',
     this.validator,
     this.itemDisabled,
+    this.focusNode,
+    this.autofocus = false,
+    this.showClearButton = false,
   }) : assert(
          items != null || asyncItems != null || pagedAsyncItems != null,
          'Either items, asyncItems, or pagedAsyncItems must be provided',
@@ -109,6 +115,13 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
               : null,
           compareFn: (a, b) => itemLabel(a) == itemLabel(b),
           validator: validator,
+          clickProps: ClickProps(
+            focusNode: focusNode,
+            autofocus: autofocus,
+          ),
+          suffixProps: DropdownSuffixProps(
+            clearButtonProps: ClearButtonProps(isVisible: showClearButton),
+          ),
 
           // ── Closed state (what the user sees before opening) ─────────────
           decoratorProps: DropDownDecoratorProps(

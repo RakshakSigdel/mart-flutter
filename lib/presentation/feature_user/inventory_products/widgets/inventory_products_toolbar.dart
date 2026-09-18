@@ -53,24 +53,22 @@ class InventoryProductsToolbar extends StatelessWidget {
       onSubmitted: onSearchSubmitted,
     );
 
-    final categoryItems = <DropdownMenuItem<int?>>[
-      const DropdownMenuItem(value: null, child: Text('All categories')),
-      for (final category in categoryOptions)
-        DropdownMenuItem(
-          value: category.id,
-          child: Text(category.name, overflow: TextOverflow.ellipsis),
-        ),
-    ];
+    final selectedCategory = categoryOptions.any(
+      (category) => category.id == categoryFilter,
+    )
+        ? categoryOptions.firstWhere((category) => category.id == categoryFilter)
+        : null;
 
     final categoryFilterField = SizedBox(
       width: isWide ? 200 : double.infinity,
-      child: AppDropdownField<int?>(
-        value: categoryOptions.any((c) => c.id == categoryFilter)
-            ? categoryFilter
-            : null,
-        items: categoryItems,
-        onChanged: onCategoryFilterChanged,
+      child: AppSearchableDropdownField<InventoryCategoryModel>(
+        selectedItem: selectedCategory,
+        items: categoryOptions,
+        itemLabel: (category) => category.name,
         hint: 'All categories',
+        searchHint: 'Search categories...',
+        showClearButton: true,
+        onChanged: (category) => onCategoryFilterChanged(category?.id),
       ),
     );
 
