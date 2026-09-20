@@ -35,6 +35,7 @@ class InventoryUnitModel {
     required this.name,
     required this.symbol,
     this.measurementType,
+    this.conversionFactor,
     required this.referenceUnit,
     required this.systemDefined,
   });
@@ -45,6 +46,10 @@ class InventoryUnitModel {
   final String name;
   final String symbol;
   final UnitMeasurementType? measurementType;
+
+  /// Null means this unit has no fixed size (for example a Sack or Carton)
+  /// and a product must describe what it contains.
+  final double? conversionFactor;
 
   /// Whether this is the base unit its measurement type's other units
   /// convert against. Backend-computed — never sent in a create/update
@@ -66,6 +71,7 @@ class InventoryUnitModel {
       measurementType: UnitMeasurementType.fromApiValue(
         json['measurementType'] as String?,
       ),
+      conversionFactor: (json['conversionFactor'] as num?)?.toDouble(),
       referenceUnit: json['referenceUnit'] as bool? ?? false,
       systemDefined: json['systemDefined'] as bool? ?? false,
     );
@@ -87,17 +93,20 @@ class UpsertInventoryUnitRequest {
     required this.name,
     required this.symbol,
     required this.measurementType,
+    this.conversionFactor,
   });
 
   final String name;
   final String symbol;
   final UnitMeasurementType measurementType;
+  final double? conversionFactor;
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'symbol': symbol,
-        'measurementType': measurementType.apiValue,
-      };
+    'name': name,
+    'symbol': symbol,
+    'measurementType': measurementType.apiValue,
+    if (conversionFactor != null) 'conversionFactor': conversionFactor,
+  };
 }
 
 /// `0.000001` -> `"0.000001"`, `1000.0` -> `"1000"` — [double.toString] uses

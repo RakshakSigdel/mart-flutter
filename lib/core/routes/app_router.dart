@@ -570,14 +570,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ),
       ),
-      // Ring up a sale — full page for the same reason as the staff form
-      // routes above. No edit route — a rung-up bill is immutable apart
-      // from taking a payment, which lives on the detail screen.
+      // The former /sales/new form is now the POS branch. Keep old links
+      // working while making every "Make bill" entry point use one form.
       GoRoute(
-        path: Routes.saleNew,
-        name: 'saleNew',
-        pageBuilder: (context, state) =>
-            AppPageRoute.sharedAxisHorizontal(state, const SaleFormScreen()),
+        path: '${Routes.sales}/new',
+        redirect: (context, state) => Routes.pos,
       ),
       // Sale detail — customer details, every line item, and the "take
       // payment" action, the things the plain list doesn't carry.

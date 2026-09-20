@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/core.dart';
-import '../../../../data/models/models_user/sale_model.dart';
 import '../controllers/sales_controller.dart';
 import '../widgets/sale_list_card.dart';
 import '../widgets/sales_pagination_bar.dart';
@@ -53,13 +52,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
 
   SalesController get _controller => ref.read(salesControllerProvider.notifier);
 
-  Future<void> _addSale() async {
-    final result = await context.push<SaleDetailModel>(Routes.saleNew);
-    if (result != null && mounted) {
-      AppSnackBar.success(context, 'Bill recorded.');
-      context.push(Routes.saleDetail(result.id));
-    }
-  }
+  void _openMakeBill() => context.go(Routes.pos);
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +88,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                 fromFilter: state.fromFilter,
                 toFilter: state.toFilter,
                 onDateRangeChanged: _controller.setDateRange,
-                onAddPressed: _addSale,
+                onAddPressed: _openMakeBill,
               ),
               const SizedBox(height: AppSpacing.md),
               Expanded(child: _buildContent(state, isWide)),
@@ -136,7 +129,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
             ? 'Ring up your first sale to get started.'
             : 'Try a different search or clear your filters.',
         actionLabel: state.search.isEmpty ? 'Make bill' : null,
-        onAction: state.search.isEmpty ? _addSale : null,
+        onAction: state.search.isEmpty ? _openMakeBill : null,
       );
     }
 

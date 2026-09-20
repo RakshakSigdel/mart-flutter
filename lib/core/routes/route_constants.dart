@@ -161,11 +161,6 @@ class Routes {
   /// IRD sales-book report and official PDF export.
   static const String salesReports = '/reports/sales';
 
-  /// The ring-up-a-sale form, as its own page — same reasoning as
-  /// [staffNew]. No edit form — a rung-up bill is immutable apart from
-  /// taking a payment against it, which is [saleDetail]'s own action.
-  static const String saleNew = '$sales/new';
-
   /// Path template for registering the sale-detail route with [GoRouter].
   /// Screens must not build this string by hand — use [saleDetail].
   static const String saleDetailPath = '$sales/:id';

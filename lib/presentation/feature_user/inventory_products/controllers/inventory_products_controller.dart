@@ -257,11 +257,24 @@ class InventoryProductsController extends Notifier<InventoryProductsState> {
     }
   }
 
-  Future<ProductModel> createProduct(CreateProductRequest request) async {
+  Future<ProductDetailModel> createProduct(CreateProductRequest request) async {
     try {
       final product = await _dataSource.create(request);
       await refresh();
       return product;
+    } on ApiException catch (e) {
+      await _handleUnauthorized(e);
+      rethrow;
+    }
+  }
+
+  Future<ProductSellingUnitModel> quickAddProduct(
+    QuickAddProductRequest request,
+  ) async {
+    try {
+      final unit = await _dataSource.quickAdd(request);
+      await refresh();
+      return unit;
     } on ApiException catch (e) {
       await _handleUnauthorized(e);
       rethrow;

@@ -42,8 +42,10 @@ class InventoryProductsRemoteDataSource {
       );
       return _unwrap(
         response.data,
-        (raw) =>
-            PageResponse.fromJson(raw as Map<String, dynamic>, ProductModel.fromJson),
+        (raw) => PageResponse.fromJson(
+          raw as Map<String, dynamic>,
+          ProductModel.fromJson,
+        ),
       );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -52,7 +54,9 @@ class InventoryProductsRemoteDataSource {
 
   Future<ProductDetailModel> getById(int id) async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>('/inventory/products/$id');
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/inventory/products/$id',
+      );
       return _unwrap(
         response.data,
         (raw) => ProductDetailModel.fromJson(raw as Map<String, dynamic>),
@@ -62,7 +66,7 @@ class InventoryProductsRemoteDataSource {
     }
   }
 
-  Future<ProductModel> create(CreateProductRequest request) async {
+  Future<ProductDetailModel> create(CreateProductRequest request) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/inventory/products',
@@ -70,8 +74,69 @@ class InventoryProductsRemoteDataSource {
       );
       return _unwrap(
         response.data,
-        (raw) => ProductModel.fromJson(raw as Map<String, dynamic>),
+        (raw) => ProductDetailModel.fromJson(raw as Map<String, dynamic>),
       );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Creates a minimally configured product from a barcode miss at the till.
+  /// Its response is intentionally the same selling-unit shape as barcode
+  /// lookup, so callers can add it to the in-progress sale immediately.
+  Future<ProductSellingUnitModel> quickAdd(
+    QuickAddProductRequest request,
+  ) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/inventory/products/quick-add',
+        data: request.toJson(),
+      );
+      return _unwrap(
+        response.data,
+        (raw) => ProductSellingUnitModel.fromJson(raw as Map<String, dynamic>),
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Import deliberately accepts HTTP 422: its `data` is the complete
+  /// row-by-row report the UI must retain rather than turn into a generic error.
+  Future<ProductImportResponse> importCsv(
+    List<int> bytes,
+    String filename, {
+    required bool dryRun,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/inventory/products/import',
+        queryParameters: {'dryRun': dryRun},
+        data: FormData.fromMap({
+          'file': MultipartFile.fromBytes(bytes, filename: filename),
+        }),
+        options: Options(
+          validateStatus: (status) => status == 200 || status == 422,
+        ),
+      );
+      final body = response.data;
+      if (body == null)
+        throw const ApiException(
+          ApiFailureType.unknownResponse,
+          'Unexpected import response.',
+        );
+      final envelope = ApiEnvelope<ProductImportResponse>.fromJson(
+        body,
+        (raw) => ProductImportResponse.fromJson(raw as Map<String, dynamic>),
+      );
+      if (response.statusCode == 422 && envelope.data != null)
+        return envelope.data!;
+      if (!envelope.success || envelope.data == null)
+        throw ApiException(
+          ApiFailureType.badRequest,
+          envelope.firstErrorMessage ?? envelope.message ?? 'Import failed.',
+        );
+      return envelope.data!;
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -95,7 +160,9 @@ class InventoryProductsRemoteDataSource {
   /// Not a hard delete — same "retire" semantics as staff/mart accounts.
   Future<String> retire(int id) async {
     try {
-      final response = await _dio.delete<Map<String, dynamic>>('/inventory/products/$id');
+      final response = await _dio.delete<Map<String, dynamic>>(
+        '/inventory/products/$id',
+      );
       return _unwrap(response.data, (raw) => raw as String);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -112,7 +179,10 @@ class InventoryProductsRemoteDataSource {
       return _unwrap(
         response.data,
         (raw) => (raw as List<dynamic>)
-            .map((e) => ProductPurchaseUnitModel.fromJson(e as Map<String, dynamic>))
+            .map(
+              (e) =>
+                  ProductPurchaseUnitModel.fromJson(e as Map<String, dynamic>),
+            )
             .toList(),
       );
     } on DioException catch (e) {
@@ -122,14 +192,19 @@ class InventoryProductsRemoteDataSource {
 
   /// The one purchase unit, with its full VAT history — [getById] and
   /// [purchaseUnits] only ever carry `currentVatRate`, not the history.
-  Future<ProductPurchaseUnitDetailModel> purchaseUnit(int id, int purchaseUnitId) async {
+  Future<ProductPurchaseUnitDetailModel> purchaseUnit(
+    int id,
+    int purchaseUnitId,
+  ) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/inventory/products/$id/purchase-units/$purchaseUnitId',
       );
       return _unwrap(
         response.data,
-        (raw) => ProductPurchaseUnitDetailModel.fromJson(raw as Map<String, dynamic>),
+        (raw) => ProductPurchaseUnitDetailModel.fromJson(
+          raw as Map<String, dynamic>,
+        ),
       );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -147,7 +222,9 @@ class InventoryProductsRemoteDataSource {
       );
       return _unwrap(
         response.data,
-        (raw) => ProductPurchaseUnitDetailModel.fromJson(raw as Map<String, dynamic>),
+        (raw) => ProductPurchaseUnitDetailModel.fromJson(
+          raw as Map<String, dynamic>,
+        ),
       );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -166,7 +243,9 @@ class InventoryProductsRemoteDataSource {
       );
       return _unwrap(
         response.data,
-        (raw) => ProductPurchaseUnitDetailModel.fromJson(raw as Map<String, dynamic>),
+        (raw) => ProductPurchaseUnitDetailModel.fromJson(
+          raw as Map<String, dynamic>,
+        ),
       );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -197,7 +276,9 @@ class InventoryProductsRemoteDataSource {
       );
       return _unwrap(
         response.data,
-        (raw) => ProductPurchaseUnitDetailModel.fromJson(raw as Map<String, dynamic>),
+        (raw) => ProductPurchaseUnitDetailModel.fromJson(
+          raw as Map<String, dynamic>,
+        ),
       );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -214,7 +295,10 @@ class InventoryProductsRemoteDataSource {
       return _unwrap(
         response.data,
         (raw) => (raw as List<dynamic>)
-            .map((e) => ProductSellingUnitModel.fromJson(e as Map<String, dynamic>))
+            .map(
+              (e) =>
+                  ProductSellingUnitModel.fromJson(e as Map<String, dynamic>),
+            )
             .toList(),
       );
     } on DioException catch (e) {

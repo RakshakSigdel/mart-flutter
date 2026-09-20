@@ -90,9 +90,9 @@ class DioClient {
         request: true,
         requestHeader: true,
         requestBody: true,
-        responseHeader: true,
-        responseBody: true,
-        error: true,
+       responseBody: true,
+       responseHeader: true,
+       error: true,
       ),
     );
 

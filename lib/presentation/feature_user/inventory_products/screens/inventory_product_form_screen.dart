@@ -29,9 +29,9 @@ class InventoryProductFormScreen extends ConsumerStatefulWidget {
       _InventoryProductFormScreenState();
 }
 
-class _InventoryProductFormScreenState extends ConsumerState<InventoryProductFormScreen> {
+class _InventoryProductFormScreenState
+    extends ConsumerState<InventoryProductFormScreen> {
   late Future<ProductDetailModel?> _productFuture = _resolveProduct();
-  bool _showFullSetup = false;
 
   Future<ProductDetailModel?> _resolveProduct() async {
     final id = widget.productId;
@@ -45,32 +45,20 @@ class _InventoryProductFormScreenState extends ConsumerState<InventoryProductFor
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: AppColors.background,
-        title: Text(
-          widget.isEditing
-              ? 'Edit product'
-              : _showFullSetup
-              ? 'Full product setup'
-              : 'Add product',
-        ),
-        actions: widget.isEditing
-            ? null
-            : [
-                TextButton(
-                  onPressed: () => setState(() => _showFullSetup = !_showFullSetup),
-                  child: Text(_showFullSetup ? 'Quick add' : 'Full setup'),
-                ),
-              ],
+        title: Text(widget.isEditing ? 'Edit product' : 'Add product'),
       ),
       body: FutureBuilder<ProductDetailModel?>(
         future: _productFuture,
         builder: (context, snapshot) {
-          if (widget.isEditing && snapshot.connectionState != ConnectionState.done) {
+          if (widget.isEditing &&
+              snapshot.connectionState != ConnectionState.done) {
             return const AppLoader();
           }
           if (widget.isEditing && snapshot.hasError) {
             return AppEmptyState.error(
               message: 'Could not load this product.',
-              onAction: () => setState(() => _productFuture = _resolveProduct()),
+              onAction: () =>
+                  setState(() => _productFuture = _resolveProduct()),
             );
           }
           return Center(
@@ -78,7 +66,7 @@ class _InventoryProductFormScreenState extends ConsumerState<InventoryProductFor
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 640),
-                child: widget.isEditing || _showFullSetup
+                child: widget.isEditing
                     ? InventoryProductForm(product: snapshot.data)
                     : const QuickProductForm(),
               ),

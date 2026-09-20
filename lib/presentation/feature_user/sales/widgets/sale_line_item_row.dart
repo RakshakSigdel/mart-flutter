@@ -64,7 +64,8 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
   final _quantityController = TextEditingController();
   final _rateController = TextEditingController();
   final _discountController = TextEditingController();
-  final _barcodeController = TextEditingController();
+  final _quickNameController = TextEditingController();
+  final _quickPriceController = TextEditingController();
   final _productFocus = FocusNode();
   final _sellingUnitFocus = FocusNode();
   final _quantityFocus = FocusNode();
@@ -73,6 +74,8 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
   ProductSellingUnitModel? _unit;
   List<ProductSellingUnitModel> _unitOptions = [];
   bool _loadingUnits = false;
+  String? _missingBarcode;
+  bool _quickAdding = false;
 
   @override
   void initState() {
@@ -89,7 +92,8 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
     _quantityController.dispose();
     _rateController.dispose();
     _discountController.dispose();
-    _barcodeController.dispose();
+    _quickNameController.dispose();
+    _quickPriceController.dispose();
     _productFocus.dispose();
     _sellingUnitFocus.dispose();
     _quantityFocus.dispose();
@@ -115,19 +119,75 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
     final value = barcode.trim();
     if (value.isEmpty) return;
 
-    final products = await _searchProducts(value);
-    if (!mounted) return;
-    if (products.isEmpty) {
-      AppSnackBar.error(context, 'No product found for this barcode.');
+    try {
+      final unit = await ref
+          .read(inventoryProductsRemoteDataSourceProvider)
+          .getByBarcode(value);
+      if (!mounted) return;
+      _applyResolvedUnit(unit);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.statusCode == 404) {
+        setState(() => _missingBarcode = value);
+      } else {
+        AppSnackBar.error(context, e.message);
+      }
+    }
+  }
+
+  void _applyResolvedUnit(ProductSellingUnitModel unit) {
+    final productId = unit.productId;
+    if (productId == null) return;
+    setState(() {
+      _product = ProductModel(
+        id: productId,
+        name: unit.productName ?? '',
+        active: unit.active,
+      );
+      _unit = unit;
+      _unitOptions = [unit];
+      _loadingUnits = false;
+      _missingBarcode = null;
+      _quantityController.text = _quantityController.text.trim().isEmpty
+          ? '1'
+          : _quantityController.text;
+      _rateController.text = formatMoneyAmount(unit.sellingPrice);
+    });
+    _notify();
+    _quantityFocus.requestFocus();
+  }
+
+  Future<void> _quickAdd() async {
+    final barcode = _missingBarcode;
+    final price = double.tryParse(_quickPriceController.text.trim());
+    if (barcode == null ||
+        _quickNameController.text.trim().isEmpty ||
+        price == null) {
+      AppSnackBar.error(context, 'Enter the product name and selling price.');
       return;
     }
-    await _onProductSelected(products.first);
+    setState(() => _quickAdding = true);
+    try {
+      final unit = await ref
+          .read(inventoryProductsRemoteDataSourceProvider)
+          .quickAdd(
+            QuickAddProductRequest(
+              name: _quickNameController.text.trim(),
+              sellingPrice: price,
+              barcode: barcode,
+            ),
+          );
+      if (mounted) _applyResolvedUnit(unit);
+    } on ApiException catch (e) {
+      if (mounted) AppSnackBar.error(context, e.message);
+    } finally {
+      if (mounted) setState(() => _quickAdding = false);
+    }
   }
 
   Future<void> _scanBarcode() async {
     final barcode = await showBarcodeScannerSheet(context);
     if (barcode == null || !mounted) return;
-    _barcodeController.text = barcode;
     await _findProductByBarcode(barcode);
   }
 
@@ -210,16 +270,6 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppTextField(
-            controller: _barcodeController,
-            label: 'Barcode',
-            hint: 'Enter barcode manually',
-            textInputAction: TextInputAction.search,
-            suffixIcon: Icons.qr_code_scanner_outlined,
-            onSuffixTap: _scanBarcode,
-            onSubmitted: _findProductByBarcode,
-          ),
-          const SizedBox(height: AppSpacing.smMd),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -235,6 +285,9 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
                   onChanged: _onProductSelected,
                   autofocus: widget.autofocusProduct,
                   focusNode: _productFocus,
+                  actionIcon: Icons.qr_code_scanner_outlined,
+                  actionTooltip: 'Scan barcode',
+                  onActionPressed: _scanBarcode,
                 ),
               ),
               IconButton(
@@ -244,6 +297,40 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
               ),
             ],
           ),
+          if (_missingBarcode != null) ...[
+            const SizedBox(height: AppSpacing.smMd),
+            Text(
+              'Barcode not found — add it and ring it up.',
+              style: AppTypography.bodySmall,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: AppTextField(
+                    controller: _quickNameController,
+                    label: 'Name',
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: AppTextField(
+                    controller: _quickPriceController,
+                    label: 'Sell price',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                AppButton(
+                  label: 'Add & ring up',
+                  isLoading: _quickAdding,
+                  onPressed: _quickAdding ? null : _quickAdd,
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: AppSpacing.smMd),
           if (_loadingUnits)
             const Padding(

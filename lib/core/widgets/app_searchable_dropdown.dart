@@ -45,6 +45,9 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
   final FocusNode? focusNode;
   final bool autofocus;
   final bool showClearButton;
+  final IconData? actionIcon;
+  final VoidCallback? onActionPressed;
+  final String? actionTooltip;
 
   const AppSearchableDropdownField({
     super.key,
@@ -63,6 +66,9 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
     this.focusNode,
     this.autofocus = false,
     this.showClearButton = false,
+    this.actionIcon,
+    this.onActionPressed,
+    this.actionTooltip,
   }) : assert(
          items != null || asyncItems != null || pagedAsyncItems != null,
          'Either items, asyncItems, or pagedAsyncItems must be provided',
@@ -92,7 +98,9 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
         //   used for both display and search filtering
         // - compareFn: tells the package how to match selectedItem to an
         //   item in the list — without this, selection highlight breaks
-        DropdownSearch<T>(
+        Stack(
+          children: [
+            DropdownSearch<T>(
           // Use loadProps for paged fetching; fall back to asyncItems or local list
           items: (filter, loadProps) {
             if (pagedAsyncItems != null) {
@@ -130,9 +138,11 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
               hintStyle: AppTypography.bodySmall.copyWith(
                 color: AppColors.textMuted,
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
+              contentPadding: EdgeInsets.fromLTRB(
+                16,
+                12,
+                actionIcon == null ? 16 : 64,
+                12,
               ),
               border: _border(AppColors.border),
               enabledBorder: _border(AppColors.border),
@@ -222,6 +232,19 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
               ),
             ),
           ),
+            ),
+            if (actionIcon != null)
+              Positioned(
+                right: 40,
+                top: 0,
+                bottom: 0,
+                child: IconButton(
+                  onPressed: onActionPressed,
+                  icon: Icon(actionIcon, size: 20),
+                  tooltip: actionTooltip,
+                ),
+              ),
+          ],
         ),
       ],
     );

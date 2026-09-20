@@ -15,6 +15,7 @@ import '../widgets/inventory_products_pagination_bar.dart';
 import '../widgets/inventory_products_row_actions.dart';
 import '../widgets/inventory_products_table.dart';
 import '../widgets/inventory_products_toolbar.dart';
+import '../widgets/product_import_dialog.dart';
 
 /// Products landing screen: the signed-in mart's product catalog, with
 /// search, filtering, pagination, and the full lifecycle of actions the
@@ -125,6 +126,18 @@ class _InventoryProductsScreenState
     }
   }
 
+  Future<void> _importProducts() async {
+    final imported = await showDialog<bool>(
+      context: context,
+      builder: (_) => const ProductImportDialog(),
+    );
+    if (imported == true && mounted) {
+      await _controller.refresh();
+      if (mounted)
+        AppSnackBar.success(context, 'Products imported successfully.');
+    }
+  }
+
   Future<void> _handleRowAction(
     ProductModel product,
     InventoryProductRowAction action,
@@ -202,6 +215,7 @@ class _InventoryProductsScreenState
                 onActiveFilterChanged: _controller.setActiveFilter,
                 onBarcodeLookupPressed: _findBarcode,
                 onAddPressed: _addProduct,
+                onImportPressed: _importProducts,
               ),
               const SizedBox(height: AppSpacing.md),
               Expanded(child: _buildContent(state, isWide)),

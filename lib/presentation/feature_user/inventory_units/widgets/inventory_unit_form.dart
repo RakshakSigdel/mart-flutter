@@ -31,6 +31,11 @@ class _InventoryUnitFormState extends ConsumerState<InventoryUnitForm> {
 
   late final _name = TextEditingController(text: widget.unit?.name);
   late final _symbol = TextEditingController(text: widget.unit?.symbol);
+  late final _conversionFactor = TextEditingController(
+    text: widget.unit?.conversionFactor == null
+        ? ''
+        : formatUnitValue(widget.unit!.conversionFactor!),
+  );
 
   UnitMeasurementType? _measurementType;
   bool _submitting = false;
@@ -46,6 +51,7 @@ class _InventoryUnitFormState extends ConsumerState<InventoryUnitForm> {
   void dispose() {
     _name.dispose();
     _symbol.dispose();
+    _conversionFactor.dispose();
     super.dispose();
   }
 
@@ -67,6 +73,9 @@ class _InventoryUnitFormState extends ConsumerState<InventoryUnitForm> {
       name: _name.text.trim(),
       symbol: _symbol.text.trim(),
       measurementType: type,
+      conversionFactor: _conversionFactor.text.trim().isEmpty
+          ? null
+          : double.tryParse(_conversionFactor.text.trim()),
     );
     try {
       if (widget.isEditing) {
@@ -118,6 +127,20 @@ class _InventoryUnitFormState extends ConsumerState<InventoryUnitForm> {
                 DropdownMenuItem(value: type, child: Text(type.label)),
             ],
             onChanged: (value) => setState(() => _measurementType = value),
+          ),
+          const SizedBox(height: AppSpacing.smMd),
+          AppTextField(
+            controller: _conversionFactor,
+            label: 'Conversion factor (optional)',
+            hint: 'Leave blank for a variable pack such as a sack or carton',
+            enabled: !_submitting,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            validator: (value) =>
+                value == null ||
+                    value.trim().isEmpty ||
+                    double.tryParse(value.trim()) != null
+                ? null
+                : 'Enter a valid number.',
           ),
           AppFormError(message: _errorMessage),
           const SizedBox(height: AppSpacing.xl),

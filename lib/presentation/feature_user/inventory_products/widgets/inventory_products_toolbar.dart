@@ -20,6 +20,7 @@ class InventoryProductsToolbar extends StatelessWidget {
     required this.onActiveFilterChanged,
     required this.onBarcodeLookupPressed,
     required this.onAddPressed,
+    required this.onImportPressed,
   });
 
   final TextEditingController searchController;
@@ -32,6 +33,7 @@ class InventoryProductsToolbar extends StatelessWidget {
   final ValueChanged<bool?> onActiveFilterChanged;
   final VoidCallback onBarcodeLookupPressed;
   final VoidCallback onAddPressed;
+  final VoidCallback onImportPressed;
 
   static const _activeItems = <DropdownMenuItem<bool?>>[
     DropdownMenuItem(value: null, child: Text('All products')),
@@ -53,10 +55,11 @@ class InventoryProductsToolbar extends StatelessWidget {
       onSubmitted: onSearchSubmitted,
     );
 
-    final selectedCategory = categoryOptions.any(
-      (category) => category.id == categoryFilter,
-    )
-        ? categoryOptions.firstWhere((category) => category.id == categoryFilter)
+    final selectedCategory =
+        categoryOptions.any((category) => category.id == categoryFilter)
+        ? categoryOptions.firstWhere(
+            (category) => category.id == categoryFilter,
+          )
         : null;
 
     final categoryFilterField = SizedBox(
@@ -94,6 +97,12 @@ class InventoryProductsToolbar extends StatelessWidget {
       leading: const Icon(Icons.qr_code_scanner_outlined),
       onPressed: onBarcodeLookupPressed,
     );
+    final importButton = AppButton(
+      label: 'Import CSV',
+      variant: AppButtonVariant.secondary,
+      leading: const Icon(Icons.upload_file_outlined),
+      onPressed: onImportPressed,
+    );
 
     if (isWide) {
       return Row(
@@ -106,6 +115,8 @@ class InventoryProductsToolbar extends StatelessWidget {
           activeFilterField,
           const SizedBox(width: AppSpacing.smMd),
           barcodeButton,
+          const SizedBox(width: AppSpacing.smMd),
+          importButton,
           const SizedBox(width: AppSpacing.smMd),
           addButton,
         ],
@@ -122,6 +133,8 @@ class InventoryProductsToolbar extends StatelessWidget {
         activeFilterField,
         const SizedBox(height: AppSpacing.smMd),
         barcodeButton,
+        const SizedBox(height: AppSpacing.smMd),
+        importButton,
         const SizedBox(height: AppSpacing.smMd),
         addButton,
       ],
