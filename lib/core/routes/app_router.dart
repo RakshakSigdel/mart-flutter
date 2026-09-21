@@ -33,6 +33,7 @@ import '../../presentation/feature_user/purchases/screens/purchases_screen.dart'
 import '../../presentation/feature_user/sales/screens/sale_detail_screen.dart';
 import '../../presentation/feature_user/sales/screens/sale_form_screen.dart';
 import '../../presentation/feature_user/sales/screens/sales_screen.dart';
+import '../../presentation/feature_user/sales/screens/pos_screen.dart';
 import '../../presentation/feature_user/sales_reports/screens/sales_book_screen.dart';
 import '../../presentation/feature_user/settings/screens/mart_settings_screen.dart';
 import '../../presentation/feature_user/shell/screens/admin_shell_screen.dart';
@@ -334,7 +335,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'pos',
                 pageBuilder: (context, state) => AppPageRoute.none(
                   state,
-                  const SaleFormScreen(showAppBar: false),
+                  const PosScreen(),
                 ),
               ),
             ],

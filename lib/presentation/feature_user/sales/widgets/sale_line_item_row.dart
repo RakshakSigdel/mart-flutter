@@ -8,6 +8,7 @@ import '../../../../data/models/models_shared/commerce_model.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
 import '../../../../providers/providers_user/inventory_products_provider.dart';
 import '../../inventory_products/widgets/barcode_scanner_screen.dart';
+import 'pos_keyboard.dart';
 
 /// A snapshot of one line item row's editable state — what
 /// `SaleLineItemRow` reports up to the form on every change, so the form
@@ -49,11 +50,15 @@ class SaleLineItemRow extends ConsumerStatefulWidget {
     super.key,
     required this.onChanged,
     required this.onRemove,
+    required this.productFocus,
+    this.canRemove = true,
     this.autofocusProduct = false,
   });
 
   final ValueChanged<SaleLineItemData> onChanged;
   final VoidCallback onRemove;
+  final FocusNode productFocus;
+  final bool canRemove;
   final bool autofocusProduct;
 
   @override
@@ -66,7 +71,8 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
   final _discountController = TextEditingController();
   final _quickNameController = TextEditingController();
   final _quickPriceController = TextEditingController();
-  final _productFocus = FocusNode();
+  FocusNode get _productFocus => widget.productFocus;
+  final _quickNameFocus = FocusNode();
   final _sellingUnitFocus = FocusNode();
   final _quantityFocus = FocusNode();
 
@@ -81,9 +87,10 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
   void initState() {
     super.initState();
     if (widget.autofocusProduct) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _productFocus.requestFocus(),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && TickerMode.valuesOf(context).enabled)
+          _productFocus.requestFocus();
+      });
     }
   }
 
@@ -94,7 +101,7 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
     _discountController.dispose();
     _quickNameController.dispose();
     _quickPriceController.dispose();
-    _productFocus.dispose();
+    _quickNameFocus.dispose();
     _sellingUnitFocus.dispose();
     _quantityFocus.dispose();
     super.dispose();
@@ -111,7 +118,7 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
           );
       return result.content;
     } on ApiException {
-      return const [];
+      rethrow;
     }
   }
 
@@ -129,6 +136,10 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
       if (!mounted) return;
       if (e.statusCode == 404) {
         setState(() => _missingBarcode = value);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && TickerMode.valuesOf(context).enabled)
+            _quickNameFocus.requestFocus();
+        });
       } else {
         AppSnackBar.error(context, e.message);
       }
@@ -154,7 +165,10 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
       _rateController.text = formatMoneyAmount(unit.sellingPrice);
     });
     _notify();
-    _quantityFocus.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && TickerMode.valuesOf(context).enabled)
+        _quantityFocus.requestFocus();
+    });
   }
 
   Future<void> _quickAdd() async {
@@ -194,6 +208,7 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
   Future<void> _onProductSelected(ProductModel? product) async {
     setState(() {
       _product = product;
+      _missingBarcode = null;
       _unit = null;
       _unitOptions = [];
       _loadingUnits = product != null;
@@ -205,7 +220,7 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
       final units = await ref
           .read(inventoryProductsRemoteDataSourceProvider)
           .sellingUnits(product.id);
-      if (!mounted) return;
+      if (!mounted || _product?.id != product.id) return;
       ProductSellingUnitModel? defaultUnit;
       for (final unit in units) {
         if (unit.isDefault) {
@@ -227,22 +242,30 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
       }
       _notify();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
+        if (!mounted ||
+            !TickerMode.valuesOf(context).enabled ||
+            !_productFocus.hasFocus)
+          return;
         (units.isEmpty ? _quantityFocus : _sellingUnitFocus).requestFocus();
       });
-    } on ApiException {
+    } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _loadingUnits = false);
+      AppSnackBar.error(context, e.message);
+      if (TickerMode.valuesOf(context).enabled) _productFocus.requestFocus();
     }
   }
 
   void _onUnitSelected(ProductSellingUnitModel? unit) {
     setState(() => _unit = unit);
-    if (unit != null && _rateController.text.trim().isEmpty) {
+    if (unit != null) {
       _rateController.text = formatMoneyAmount(unit.sellingPrice);
     }
     _notify();
-    _quantityFocus.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && TickerMode.valuesOf(context).enabled)
+        _quantityFocus.requestFocus();
+    });
   }
 
   void _notify() {
@@ -274,26 +297,24 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: AppSearchableDropdownField<ProductModel>(
+                child: PosPicker<ProductModel>(
                   label: 'Product or barcode',
                   selectedItem: _product,
-                  asyncItems: _searchProducts,
+                  search: _searchProducts,
                   itemLabel: (p) => p.productCode == null
                       ? p.name
                       : '${p.name} (${p.productCode})',
-                  hint: 'Search by name or code',
                   onChanged: _onProductSelected,
                   autofocus: widget.autofocusProduct,
                   focusNode: _productFocus,
-                  actionIcon: Icons.qr_code_scanner_outlined,
-                  actionTooltip: 'Scan barcode',
-                  onActionPressed: _scanBarcode,
+                  onScan: _scanBarcode,
+                  onBarcode: _findProductByBarcode,
                 ),
               ),
               IconButton(
                 icon: const Icon(Icons.close_rounded),
                 tooltip: 'Remove item',
-                onPressed: widget.onRemove,
+                onPressed: widget.canRemove ? widget.onRemove : null,
               ),
             ],
           ),
@@ -309,6 +330,7 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
                 Expanded(
                   child: AppTextField(
                     controller: _quickNameController,
+                    focusNode: _quickNameFocus,
                     label: 'Name',
                   ),
                 ),
@@ -342,19 +364,12 @@ class _SaleLineItemRowState extends ConsumerState<SaleLineItemRow> {
               ),
             )
           else if (_product != null) ...[
-            AppDropdownField<ProductSellingUnitModel?>(
+            PosPicker<ProductSellingUnitModel>(
               label: 'Selling unit',
-              value: _unit,
-              hint: _unitOptions.isEmpty
-                  ? 'No selling units set up'
-                  : 'Select a unit',
-              items: [
-                for (final unit in _unitOptions)
-                  DropdownMenuItem(
-                    value: unit,
-                    child: Text('${unit.unit.name} (${unit.unit.symbol})'),
-                  ),
-              ],
+              selectedItem: _unit,
+              enabled: _unitOptions.isNotEmpty,
+              items: _unitOptions,
+              itemLabel: (unit) => '${unit.unit.name} (${unit.unit.symbol})',
               onChanged: _onUnitSelected,
               focusNode: _sellingUnitFocus,
             ),

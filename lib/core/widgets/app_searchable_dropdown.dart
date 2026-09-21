@@ -1,5 +1,6 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
@@ -101,137 +102,159 @@ class AppSearchableDropdownField<T> extends StatelessWidget {
         Stack(
           children: [
             DropdownSearch<T>(
-          // Use loadProps for paged fetching; fall back to asyncItems or local list
-          items: (filter, loadProps) {
-            if (pagedAsyncItems != null) {
-              final skip = loadProps?.skip ?? 0;
-              final take = loadProps?.take ?? pageSize;
-              final page = skip ~/ take;
-              return pagedAsyncItems!(filter, page, take);
-            }
-            if (asyncItems != null) return asyncItems!(filter);
-            return items!;
-          },
-          selectedItem: selectedItem,
-          onSelected: onChanged,
-          itemAsString: itemLabel,
-          // Only apply local filter when using a static list
-          filterFn:
-              (items != null && asyncItems == null && pagedAsyncItems == null)
-              ? (item, filter) =>
-                    itemLabel(item).toLowerCase().contains(filter.toLowerCase())
-              : null,
-          compareFn: (a, b) => itemLabel(a) == itemLabel(b),
-          validator: validator,
-          clickProps: ClickProps(
-            focusNode: focusNode,
-            autofocus: autofocus,
-          ),
-          suffixProps: DropdownSuffixProps(
-            clearButtonProps: ClearButtonProps(isVisible: showClearButton),
-          ),
+              // Use loadProps for paged fetching; fall back to asyncItems or local list
+              items: (filter, loadProps) {
+                if (pagedAsyncItems != null) {
+                  final skip = loadProps?.skip ?? 0;
+                  final take = loadProps?.take ?? pageSize;
+                  final page = skip ~/ take;
+                  return pagedAsyncItems!(filter, page, take);
+                }
+                if (asyncItems != null) return asyncItems!(filter);
+                return items!;
+              },
+              selectedItem: selectedItem,
+              onSelected: onChanged,
+              itemAsString: itemLabel,
+              // Only apply local filter when using a static list
+              filterFn:
+                  (items != null &&
+                      asyncItems == null &&
+                      pagedAsyncItems == null)
+                  ? (item, filter) => itemLabel(
+                      item,
+                    ).toLowerCase().contains(filter.toLowerCase())
+                  : null,
+              compareFn: (a, b) => itemLabel(a) == itemLabel(b),
+              validator: validator,
+              clickProps: ClickProps(
+                focusNode: focusNode,
+                autofocus: autofocus,
+              ),
+              suffixProps: DropdownSuffixProps(
+                clearButtonProps: ClearButtonProps(isVisible: showClearButton),
+              ),
 
-          // ── Closed state (what the user sees before opening) ─────────────
-          decoratorProps: DropDownDecoratorProps(
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: AppTypography.bodySmall.copyWith(
-                color: AppColors.textMuted,
-              ),
-              contentPadding: EdgeInsets.fromLTRB(
-                16,
-                12,
-                actionIcon == null ? 16 : 64,
-                12,
-              ),
-              border: _border(AppColors.border),
-              enabledBorder: _border(AppColors.border),
-              focusedBorder: _border(AppColors.primaryDeep),
-              errorBorder: _border(AppColors.error),
-              filled: true,
-              fillColor: AppColors.card,
-            ),
-          ),
-
-          // ── Popup (the dropdown panel that opens) ─────────────────────────
-          popupProps: PopupProps.menu(
-            showSearchBox: true,
-            disabledItemFn: itemDisabled,
-            // Enable infinite scroll only when pagedAsyncItems is provided
-            infiniteScrollProps: pagedAsyncItems != null
-                ? InfiniteScrollProps(loadProps: LoadProps(take: pageSize))
-                : null,
-
-            searchFieldProps: TextFieldProps(
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: searchHint,
-                hintStyle: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textMuted,
-                ),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  size: 18,
-                  color: AppColors.textMuted,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                border: _border(AppColors.border),
-                enabledBorder: _border(AppColors.border),
-                focusedBorder: _border(AppColors.primaryDeep),
-                filled: true,
-                fillColor: AppColors.card,
-              ),
-            ),
-
-            constraints: const BoxConstraints(maxHeight: 300),
-            menuProps: MenuProps(
-              shape: RoundedRectangleBorder(
-                borderRadius: AppBorderRadius.radiusL,
-              ),
-              backgroundColor: AppColors.card,
-              elevation: 8,
-            ),
-
-            itemBuilder: (context, item, isDisabled, isSelected) => Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.smMd,
-              ),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primarySoft : Colors.transparent,
-              ),
-              child: Opacity(
-                opacity: isDisabled ? 0.5 : 1.0,
-                child: Text(
-                  itemLabel(item),
-                  style: AppTypography.body.copyWith(
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.textPrimary,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                    decoration: isDisabled ? TextDecoration.lineThrough : null,
-                  ),
-                ),
-              ),
-            ),
-
-            emptyBuilder: (context, searchEntry) => Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Center(
-                child: Text(
-                  'No results for "$searchEntry"',
-                  style: AppTypography.bodySmall.copyWith(
+              // ── Closed state (what the user sees before opening) ─────────────
+              decoratorProps: DropDownDecoratorProps(
+                decoration: InputDecoration(
+                  hintText: hint,
+                  hintStyle: AppTypography.bodySmall.copyWith(
                     color: AppColors.textMuted,
                   ),
+                  contentPadding: EdgeInsets.fromLTRB(
+                    16,
+                    12,
+                    actionIcon == null ? 16 : 64,
+                    12,
+                  ),
+                  border: _border(AppColors.border),
+                  enabledBorder: _border(AppColors.border),
+                  focusedBorder: _border(AppColors.primaryDeep),
+                  errorBorder: _border(AppColors.error),
+                  filled: true,
+                  fillColor: AppColors.card,
                 ),
               ),
-            ),
-          ),
+
+              // ── Popup (the dropdown panel that opens) ─────────────────────────
+              popupProps: PopupProps.menu(
+                showSearchBox: true,
+                disabledItemFn: itemDisabled,
+                // Enable infinite scroll only when pagedAsyncItems is provided
+                infiniteScrollProps: pagedAsyncItems != null
+                    ? InfiniteScrollProps(loadProps: LoadProps(take: pageSize))
+                    : null,
+
+                searchFieldProps: TextFieldProps(
+                  autofocus: true,
+                  // The search box starts focused. Its Down key must enter the
+                  // result list rather than being treated as form navigation by
+                  // an ancestor; an item can then be chosen with Enter.
+                  containerBuilder: (context, child) => Focus(
+                    onKeyEvent: (_, event) {
+                      if (event is KeyDownEvent &&
+                          event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                        FocusScope.of(context).nextFocus();
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
+                    child: child,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: searchHint,
+                    hintStyle: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textMuted,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    border: _border(AppColors.border),
+                    enabledBorder: _border(AppColors.border),
+                    focusedBorder: _border(AppColors.primaryDeep),
+                    filled: true,
+                    fillColor: AppColors.card,
+                  ),
+                ),
+
+                constraints: const BoxConstraints(maxHeight: 300),
+                menuProps: MenuProps(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppBorderRadius.radiusL,
+                  ),
+                  backgroundColor: AppColors.card,
+                  elevation: 8,
+                ),
+
+                itemBuilder: (context, item, isDisabled, isSelected) =>
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.smMd,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primarySoft
+                            : Colors.transparent,
+                      ),
+                      child: Opacity(
+                        opacity: isDisabled ? 0.5 : 1.0,
+                        child: Text(
+                          itemLabel(item),
+                          style: AppTypography.body.copyWith(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.textPrimary,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                            decoration: isDisabled
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                emptyBuilder: (context, searchEntry) => Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Center(
+                    child: Text(
+                      'No results for "$searchEntry"',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
             if (actionIcon != null)
               Positioned(

@@ -66,6 +66,41 @@ class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isCollapsed = false;
 
+  /// Whether the current collapse was triggered automatically by the POS
+  /// route (so we can restore the sidebar when the user leaves POS).
+  bool _autoCollapsed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncCollapseForLocation(widget.location);
+  }
+
+  @override
+  void didUpdateWidget(AdminShellScreen old) {
+    super.didUpdateWidget(old);
+    if (old.location != widget.location) {
+      _syncCollapseForLocation(widget.location);
+    }
+  }
+
+  /// Collapses the sidebar automatically when entering POS, and restores it
+  /// when leaving POS (only if *we* were the ones who collapsed it).
+  void _syncCollapseForLocation(String location) {
+    final isPosNow = location == Routes.pos;
+    if (isPosNow && !_isCollapsed) {
+      setState(() {
+        _isCollapsed = true;
+        _autoCollapsed = true;
+      });
+    } else if (!isPosNow && _autoCollapsed) {
+      setState(() {
+        _isCollapsed = false;
+        _autoCollapsed = false;
+      });
+    }
+  }
+
   Future<void> _logout() async {
     await ref.read(authControllerProvider.notifier).logout();
     if (mounted) context.go(Routes.login);
@@ -144,7 +179,11 @@ class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
       onLogout: _logout,
       isCollapsed: isWide && _isCollapsed,
       onToggleCollapse: isWide
-          ? () => setState(() => _isCollapsed = !_isCollapsed)
+          ? () => setState(() {
+                _isCollapsed = !_isCollapsed;
+                // If user manually expands/collapses, clear the auto-flag
+                _autoCollapsed = false;
+              })
           : null,
       isRefreshing: sidebarState.isLoading,
       refreshFailed: sidebarState.error != null,

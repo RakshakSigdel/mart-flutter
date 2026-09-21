@@ -43,101 +43,133 @@ class InventoryProductsToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= AppBreakpoints.tablet;
+    // This toolbar lives beside the sidebar, so viewport width overstates the
+    // room it actually has. Measure its actual controls rather than using a
+    // conservative breakpoint: keep one row whenever it can truly fit.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final direction = Directionality.of(context);
+        double buttonWidth(String label) {
+          final text = TextPainter(
+            text: TextSpan(
+              text: label,
+              style: AppTypography.label.copyWith(fontSize: 14),
+            ),
+            textDirection: direction,
+          )..layout();
+          // AppButton.md: 16px padding on either side, plus an 18px icon
+          // and 8px icon/text gap.
+          return text.width + 32 + 18 + AppSpacing.sm;
+        }
 
-    final search = AppTextField(
-      controller: searchController,
-      hint: 'Search by name or product code',
-      prefixIcon: Icons.search,
-      textInputAction: TextInputAction.search,
-      onChanged: onSearchChanged,
-      onSubmitted: onSearchSubmitted,
-    );
+        const categoryWidth = 200.0;
+        const activeWidth = 160.0;
+        const minimumSearchWidth = 180.0;
+        final controlsWidth =
+            categoryWidth +
+            activeWidth +
+            buttonWidth('Find barcode') +
+            buttonWidth('Import CSV') +
+            buttonWidth('Quick add product');
+        final gapsWidth = AppSpacing.smMd * 5;
+        final isWide =
+            constraints.maxWidth >=
+            controlsWidth + gapsWidth + minimumSearchWidth;
 
-    final selectedCategory =
-        categoryOptions.any((category) => category.id == categoryFilter)
-        ? categoryOptions.firstWhere(
-            (category) => category.id == categoryFilter,
-          )
-        : null;
+        final search = AppTextField(
+          controller: searchController,
+          hint: 'Search by name or product code',
+          prefixIcon: Icons.search,
+          textInputAction: TextInputAction.search,
+          onChanged: onSearchChanged,
+          onSubmitted: onSearchSubmitted,
+        );
 
-    final categoryFilterField = SizedBox(
-      width: isWide ? 200 : double.infinity,
-      child: AppSearchableDropdownField<InventoryCategoryModel>(
-        selectedItem: selectedCategory,
-        items: categoryOptions,
-        itemLabel: (category) => category.name,
-        hint: 'All categories',
-        searchHint: 'Search categories...',
-        showClearButton: true,
-        onChanged: (category) => onCategoryFilterChanged(category?.id),
-      ),
-    );
+        final selectedCategory =
+            categoryOptions.any((category) => category.id == categoryFilter)
+            ? categoryOptions.firstWhere(
+                (category) => category.id == categoryFilter,
+              )
+            : null;
 
-    final activeFilterField = SizedBox(
-      width: isWide ? 160 : double.infinity,
-      child: AppDropdownField<bool?>(
-        value: activeFilter,
-        items: _activeItems,
-        onChanged: onActiveFilterChanged,
-        hint: 'All products',
-      ),
-    );
+        final categoryFilterField = SizedBox(
+          width: isWide ? 200 : double.infinity,
+          child: AppSearchableDropdownField<InventoryCategoryModel>(
+            selectedItem: selectedCategory,
+            items: categoryOptions,
+            itemLabel: (category) => category.name,
+            hint: 'All categories',
+            searchHint: 'Search categories...',
+            showClearButton: true,
+            onChanged: (category) => onCategoryFilterChanged(category?.id),
+          ),
+        );
 
-    final addButton = AppButton(
-      label: 'Quick add product',
-      leading: const Icon(Icons.add),
-      onPressed: onAddPressed,
-    );
+        final activeFilterField = SizedBox(
+          width: isWide ? 160 : double.infinity,
+          child: AppDropdownField<bool?>(
+            value: activeFilter,
+            items: _activeItems,
+            onChanged: onActiveFilterChanged,
+            hint: 'All products',
+          ),
+        );
 
-    final barcodeButton = AppButton(
-      label: 'Find barcode',
-      variant: AppButtonVariant.secondary,
-      leading: const Icon(Icons.qr_code_scanner_outlined),
-      onPressed: onBarcodeLookupPressed,
-    );
-    final importButton = AppButton(
-      label: 'Import CSV',
-      variant: AppButtonVariant.secondary,
-      leading: const Icon(Icons.upload_file_outlined),
-      onPressed: onImportPressed,
-    );
+        final addButton = AppButton(
+          label: 'Quick add product',
+          leading: const Icon(Icons.add),
+          onPressed: onAddPressed,
+        );
 
-    if (isWide) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: search),
-          const SizedBox(width: AppSpacing.smMd),
-          categoryFilterField,
-          const SizedBox(width: AppSpacing.smMd),
-          activeFilterField,
-          const SizedBox(width: AppSpacing.smMd),
-          barcodeButton,
-          const SizedBox(width: AppSpacing.smMd),
-          importButton,
-          const SizedBox(width: AppSpacing.smMd),
-          addButton,
-        ],
-      );
-    }
+        final barcodeButton = AppButton(
+          label: 'Find barcode',
+          variant: AppButtonVariant.secondary,
+          leading: const Icon(Icons.qr_code_scanner_outlined),
+          onPressed: onBarcodeLookupPressed,
+        );
+        final importButton = AppButton(
+          label: 'Import CSV',
+          variant: AppButtonVariant.secondary,
+          leading: const Icon(Icons.upload_file_outlined),
+          onPressed: onImportPressed,
+        );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        search,
-        const SizedBox(height: AppSpacing.smMd),
-        categoryFilterField,
-        const SizedBox(height: AppSpacing.smMd),
-        activeFilterField,
-        const SizedBox(height: AppSpacing.smMd),
-        barcodeButton,
-        const SizedBox(height: AppSpacing.smMd),
-        importButton,
-        const SizedBox(height: AppSpacing.smMd),
-        addButton,
-      ],
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: search),
+              const SizedBox(width: AppSpacing.smMd),
+              categoryFilterField,
+              const SizedBox(width: AppSpacing.smMd),
+              activeFilterField,
+              const SizedBox(width: AppSpacing.smMd),
+              barcodeButton,
+              const SizedBox(width: AppSpacing.smMd),
+              importButton,
+              const SizedBox(width: AppSpacing.smMd),
+              addButton,
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            search,
+            const SizedBox(height: AppSpacing.smMd),
+            categoryFilterField,
+            const SizedBox(height: AppSpacing.smMd),
+            activeFilterField,
+            const SizedBox(height: AppSpacing.smMd),
+            barcodeButton,
+            const SizedBox(height: AppSpacing.smMd),
+            importButton,
+            const SizedBox(height: AppSpacing.smMd),
+            addButton,
+          ],
+        );
+      },
     );
   }
 }

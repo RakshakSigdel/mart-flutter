@@ -170,6 +170,16 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
     if (code != null && mounted) setState(() => _barcode.text = code);
   }
 
+  /// A dropdown's popup owns focus while it is open. Advance only after it
+  /// has closed, otherwise the following arrow key would remain trapped in
+  /// the just-selected popup.
+  void _advanceAfterSelection(VoidCallback selection) {
+    selection();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scope.nextFocus();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inventoryProductsControllerProvider);
@@ -213,15 +223,22 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
                         : null,
                   ),
                   const SizedBox(height: AppSpacing.smMd),
-                  AppSearchableDropdownField<InventoryCategoryModel>(
+                  AppDropdownField<InventoryCategoryModel>(
                     label: 'Category',
-                    selectedItem: _category,
-                    items: state.categoryOptions,
-                    itemLabel: (c) => c.name,
+                    value: _category,
+                    items: [
+                      for (final category in state.categoryOptions)
+                        DropdownMenuItem(
+                          value: category,
+                          child: Text(category.name),
+                        ),
+                    ],
                     hint: 'Choose a category',
                     onChanged: _saving
                         ? (_) {}
-                        : (v) => setState(() => _category = v),
+                        : (v) => _advanceAfterSelection(
+                            () => setState(() => _category = v),
+                          ),
                   ),
                   const SizedBox(height: AppSpacing.smMd),
                   AppTextField(
@@ -275,13 +292,14 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
                           padding: const EdgeInsets.all(AppSpacing.md),
                           child: Column(
                             children: [
-                              AppSearchableDropdownField<InventoryUnitModel>(
+                              AppDropdownField<InventoryUnitModel>(
                                 label: 'Extra selling unit',
-                                selectedItem: _extra,
-                                items: compatible,
-                                itemLabel: (u) => '${u.name} (${u.symbol})',
+                                value: _extra,
+                                items: _unitItems(compatible),
                                 hint: 'Optional',
-                                onChanged: (v) => setState(() => _extra = v),
+                                onChanged: (v) => _advanceAfterSelection(
+                                  () => setState(() => _extra = v),
+                                ),
                               ),
                               if (_extra != null) ...[
                                 const SizedBox(height: AppSpacing.smMd),
@@ -348,13 +366,14 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
       ),
       const SizedBox(width: AppSpacing.smMd),
       Expanded(
-        child: AppSearchableDropdownField<InventoryUnitModel>(
+        child: AppDropdownField<InventoryUnitModel>(
           label: 'per',
-          selectedItem: selected,
-          items: options,
-          itemLabel: (u) => '${u.name} (${u.symbol})',
+          value: selected,
+          items: _unitItems(options),
           hint: 'Unit',
-          onChanged: _saving ? (_) {} : changed,
+          onChanged: _saving
+              ? (_) {}
+              : (value) => _advanceAfterSelection(() => changed(value)),
         ),
       ),
     ],
@@ -378,15 +397,26 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
       ),
       const SizedBox(width: AppSpacing.smMd),
       Expanded(
-        child: AppSearchableDropdownField<InventoryUnitModel>(
+        child: AppDropdownField<InventoryUnitModel>(
           label: 'of unit',
-          selectedItem: selected,
-          items: options,
-          itemLabel: (u) => '${u.name} (${u.symbol})',
+          value: selected,
+          items: _unitItems(options),
           hint: 'e.g. kg',
-          onChanged: _saving ? (_) {} : changed,
+          onChanged: _saving
+              ? (_) {}
+              : (value) => _advanceAfterSelection(() => changed(value)),
         ),
       ),
     ],
   );
+
+  List<DropdownMenuItem<InventoryUnitModel>> _unitItems(
+    List<InventoryUnitModel> units,
+  ) => [
+    for (final unit in units)
+      DropdownMenuItem(
+        value: unit,
+        child: Text('${unit.name} (${unit.symbol})'),
+      ),
+  ];
 }
