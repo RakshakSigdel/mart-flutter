@@ -11,6 +11,7 @@ import '../../../../providers/providers_user/customer_provider.dart';
 import '../controllers/sales_controller.dart';
 import '../models/pos_cart_item.dart';
 import 'pos_keyboard.dart';
+import '../../../shared/widgets/section_ui.dart';
 
 /// Step 1 of the POS flow — payment details, customer info, and bill creation.
 class PosPaymentStep extends ConsumerStatefulWidget {
@@ -198,368 +199,417 @@ class _PosPaymentStepState extends ConsumerState<PosPaymentStep> {
         absorbing: _submitting,
         child: Form(
           key: _formKey,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Left: payment form ──────────────────────────────────────────
-              Expanded(
-                flex: 3,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppSpacing.md),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(gradient: AppGradients.background),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = AppBreakpoints.isDesktop(constraints.maxWidth);
+                final gutter = AppBreakpoints.isPhone(constraints.maxWidth)
+                    ? AppSpacing.sm
+                    : AppSpacing.md;
+
+                final formPanel = SectionPanel(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Header
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back_rounded),
-                            tooltip: 'Back to products',
-                            onPressed: _submitting ? null : widget.onBack,
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Text('Payment', style: AppTypography.title),
-                        ],
+                      SectionPanelHeader(
+                        icon: Icons.payments_rounded,
+                        eyebrow: 'PAYMENT',
+                        subtitle: 'Take the money, then save the bill',
+                        onBack: _submitting ? null : widget.onBack,
+                        backTooltip: 'Back to products',
                       ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'Keyboard: ↑/↓ move · → open/select/act · ← back · Shift+arrows edit text',
-                        style: AppTypography.caption,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
+                      const _KeyboardHintStrip(),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Payment method
+                              PosPicker<PaymentMethod>(
+                                label: 'Payment method',
+                                focusNode: _paymentMethodFocus,
+                                autofocus: widget.active,
+                                selectedItem: _paymentMethod,
+                                enabled: !_submitting,
+                                items: PaymentMethod.values,
+                                itemLabel: (m) => m.label,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _paymentMethod = value;
+                                    if (value == PaymentMethod.credit) {
+                                      _showCustomerSection = true;
+                                    }
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: AppSpacing.smMd),
 
-                      // Payment method
-                      PosPicker<PaymentMethod>(
-                        label: 'Payment method',
-                        focusNode: _paymentMethodFocus,
-                        autofocus: widget.active,
-                        selectedItem: _paymentMethod,
-                        enabled: !_submitting,
-                        items: PaymentMethod.values,
-                        itemLabel: (m) => m.label,
-                        onChanged: (value) {
-                          setState(() {
-                            _paymentMethod = value;
-                            if (value == PaymentMethod.credit) {
-                              _showCustomerSection = true;
-                            }
-                          });
-                        },
-                      ),
-                      const SizedBox(height: AppSpacing.smMd),
-
-                      // Tendered / discount
-                      Row(
-                        children: [
-                          if (_paymentMethod == PaymentMethod.cash) ...[
-                            Expanded(
-                              child: AppTextField(
-                                controller: _tenderedCtrl,
-                                label: 'Customer gave (cash)',
-                                hint: 'e.g. 1000',
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
+                              // Tendered / discount
+                              Row(
+                                children: [
+                                  if (_paymentMethod == PaymentMethod.cash) ...[
+                                    Expanded(
+                                      child: AppTextField(
+                                        controller: _tenderedCtrl,
+                                        label: 'Customer gave (cash)',
+                                        hint: 'e.g. 1000',
+                                        keyboardType:
+                                            const TextInputType.numberWithOptions(
+                                              decimal: true,
+                                            ),
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.allow(
+                                            RegExp(r'^\d*\.?\d*'),
+                                          ),
+                                        ],
+                                        enabled: !_submitting,
+                                        onChanged: (_) => setState(() {}),
+                                      ),
                                     ),
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                    RegExp(r'^\d*\.?\d*'),
+                                    const SizedBox(width: AppSpacing.smMd),
+                                  ],
+                                  Expanded(
+                                    child: AppTextField(
+                                      controller: _discountCtrl,
+                                      label: 'Bill discount',
+                                      hint: '0',
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.allow(
+                                          RegExp(r'^\d*\.?\d*'),
+                                        ),
+                                      ],
+                                      enabled: !_submitting,
+                                      onChanged: (_) => setState(() {}),
+                                    ),
                                   ),
                                 ],
-                                enabled: !_submitting,
-                                onChanged: (_) => setState(() {}),
                               ),
-                            ),
-                            const SizedBox(width: AppSpacing.smMd),
-                          ],
-                          Expanded(
-                            child: AppTextField(
-                              controller: _discountCtrl,
-                              label: 'Bill discount',
-                              hint: '0',
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'^\d*\.?\d*'),
-                                ),
-                              ],
-                              enabled: !_submitting,
-                              onChanged: (_) => setState(() {}),
-                            ),
-                          ),
-                        ],
-                      ),
 
-                      // Quick-cash chips — shortcuts only, mouse/touch-driven,
-                      // so arrow-key/Tab traversal skips straight over them.
-                      if (_paymentMethod == PaymentMethod.cash) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        ExcludeFocus(
-                          child: Wrap(
-                            spacing: AppSpacing.sm,
-                            runSpacing: AppSpacing.sm,
-                            children: [
-                              for (final amt in const [100, 500, 1000, 2000])
-                                ActionChip(
-                                  label: Text('Rs. $amt'),
-                                  onPressed: _submitting
-                                      ? null
-                                      : () => setState(
-                                          () => _tenderedCtrl.text = '$amt',
-                                        ),
-                                ),
-                              ActionChip(
-                                label: const Text('Exact'),
-                                onPressed: _submitting
-                                    ? null
-                                    : () => setState(
-                                        () => _tenderedCtrl.text = _netTotal
-                                            .toStringAsFixed(2),
-                                      ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Customer section (expandable)
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.border),
-                          borderRadius: AppBorderRadius.radiusL,
-                        ),
-                        child: ExpansionTile(
-                          key: ValueKey('customer-${_paymentMethod.name}'),
-                          enabled: !_submitting,
-                          tilePadding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md,
-                          ),
-                          title: Text(
-                            _paymentMethod == PaymentMethod.credit
-                                ? 'Customer details'
-                                : 'Customer details (optional)',
-                            style: AppTypography.body,
-                          ),
-                          subtitle: Text(
-                            _paymentMethod == PaymentMethod.credit
-                                ? 'Required for a credit sale.'
-                                : 'Add a saved customer or enter their details.',
-                            style: AppTypography.bodySmall,
-                          ),
-                          initiallyExpanded: _showCustomerSection,
-                          onExpansionChanged: (v) =>
-                              setState(() => _showCustomerSection = v),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                AppSpacing.md,
-                                0,
-                                AppSpacing.md,
-                                AppSpacing.md,
-                              ),
-                              child: Column(
-                                children: [
-                                  if (_selectedCustomer != null)
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: TextButton.icon(
-                                        onPressed: _submitting
-                                            ? null
-                                            : _clearCustomer,
-                                        icon: const Icon(Icons.close, size: 16),
-                                        label: const Text('Clear'),
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: AppColors.textMuted,
-                                          padding: EdgeInsets.zero,
-                                          visualDensity: VisualDensity.compact,
-                                        ),
-                                      ),
-                                    ),
-                                  PosPicker<CustomerModel>(
-                                    label: 'Find saved customer',
-                                    focusNode: _customerFocus,
-                                    selectedItem: _selectedCustomer,
-                                    search: (filter) async {
-                                      final ds = ref.read(
-                                        customerRemoteDataSourceProvider,
-                                      );
-                                      final page = await ds.list(
-                                        search: filter.isEmpty ? null : filter,
-                                        size: 30,
-                                      );
-                                      return page.content;
-                                    },
-                                    itemLabel: (c) => c.phone != null
-                                        ? '${c.name} (${c.phone})'
-                                        : c.name,
-                                    onChanged: _submitting
-                                        ? (_) {}
-                                        : _onCustomerSelected,
-                                  ),
-                                  const SizedBox(height: AppSpacing.smMd),
-                                  AppTextField(
-                                    controller: _nameCtrl,
-                                    label: 'Customer name',
-                                    enabled: !_submitting,
-                                    onChanged: (_) {
-                                      if (_selectedCustomer != null) {
-                                        setState(
-                                          () => _selectedCustomer = null,
-                                        );
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(height: AppSpacing.smMd),
-                                  Row(
+                              // Quick-cash chips — shortcuts only, mouse/touch-driven,
+                              // so arrow-key/Tab traversal skips straight over them.
+                              if (_paymentMethod == PaymentMethod.cash) ...[
+                                const SizedBox(height: AppSpacing.sm),
+                                ExcludeFocus(
+                                  child: Wrap(
+                                    spacing: AppSpacing.sm,
+                                    runSpacing: AppSpacing.sm,
                                     children: [
-                                      Expanded(
-                                        child: AppTextField(
-                                          controller: _phoneCtrl,
-                                          label: 'Phone number',
-                                          keyboardType: TextInputType.phone,
-                                          enabled: !_submitting,
+                                      for (final amt in const [
+                                        100,
+                                        500,
+                                        1000,
+                                        2000,
+                                      ])
+                                        BrandPill(
+                                          label: 'Rs. $amt',
+                                          onTap: _submitting
+                                              ? null
+                                              : () => setState(
+                                                  () => _tenderedCtrl.text =
+                                                      '$amt',
+                                                ),
                                         ),
-                                      ),
-                                      const SizedBox(width: AppSpacing.smMd),
-                                      Expanded(
-                                        child: AppTextField(
-                                          controller: _panCtrl,
-                                          label: 'PAN',
-                                          enabled: !_submitting,
-                                        ),
+                                      BrandPill(
+                                        label: 'Exact',
+                                        icon: Icons.done_all_rounded,
+                                        onTap: _submitting
+                                            ? null
+                                            : () => setState(
+                                                () => _tenderedCtrl.text =
+                                                    _netTotal.toStringAsFixed(
+                                                      2,
+                                                    ),
+                                              ),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: AppSpacing.smMd),
-                                  AppTextField.multiline(
-                                    controller: _remarkCtrl,
-                                    label: 'Note (optional)',
-                                    enabled: !_submitting,
+                                ),
+                              ],
+                              const SizedBox(height: AppSpacing.md),
+
+                              // Customer section (expandable)
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: AppColors.border),
+                                  borderRadius: AppBorderRadius.radiusL,
+                                ),
+                                child: ExpansionTile(
+                                  key: ValueKey(
+                                    'customer-${_paymentMethod.name}',
                                   ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      AppFormError(message: _errorMessage),
-                      const SizedBox(height: AppSpacing.md),
-
-                      AppButton.expanded(
-                        label: 'Save Bill / बिल सुरक्षित गर्नुहोस्',
-                        isLoading: _submitting,
-                        onPressed: _submitting ? null : _submit,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Vertical divider
-              const VerticalDivider(width: 1),
-
-              // ── Right: order summary ────────────────────────────────────────
-              SizedBox(
-                width: 320,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Text(
-                        'Order Summary',
-                        style: AppTypography.subtitle,
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    Expanded(
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.sm,
-                        ),
-                        itemCount: widget.cart.length,
-                        separatorBuilder: (_, __) =>
-                            const Divider(height: AppSpacing.smMd),
-                        itemBuilder: (ctx, i) {
-                          final item = widget.cart[i];
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  enabled: !_submitting,
+                                  tilePadding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                  ),
+                                  title: Text(
+                                    _paymentMethod == PaymentMethod.credit
+                                        ? 'Customer details'
+                                        : 'Customer details (optional)',
+                                    style: AppTypography.body,
+                                  ),
+                                  subtitle: Text(
+                                    _paymentMethod == PaymentMethod.credit
+                                        ? 'Required for a credit sale.'
+                                        : 'Add a saved customer or enter their details.',
+                                    style: AppTypography.bodySmall,
+                                  ),
+                                  initiallyExpanded: _showCustomerSection,
+                                  onExpansionChanged: (v) =>
+                                      setState(() => _showCustomerSection = v),
                                   children: [
-                                    Text(
-                                      item.productName,
-                                      style: AppTypography.body,
-                                    ),
-                                    Text(
-                                      '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity}'
-                                      ' x ${formatMoneyAmount(item.rate)}',
-                                      style: AppTypography.caption.copyWith(
-                                        color: AppColors.textMuted,
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        AppSpacing.md,
+                                        0,
+                                        AppSpacing.md,
+                                        AppSpacing.md,
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          if (_selectedCustomer != null)
+                                            Align(
+                                              alignment: Alignment.centerRight,
+                                              child: TextButton.icon(
+                                                onPressed: _submitting
+                                                    ? null
+                                                    : _clearCustomer,
+                                                icon: const Icon(
+                                                  Icons.close,
+                                                  size: 16,
+                                                ),
+                                                label: const Text('Clear'),
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor:
+                                                      AppColors.textMuted,
+                                                  padding: EdgeInsets.zero,
+                                                  visualDensity:
+                                                      VisualDensity.compact,
+                                                ),
+                                              ),
+                                            ),
+                                          PosPicker<CustomerModel>(
+                                            label: 'Find saved customer',
+                                            focusNode: _customerFocus,
+                                            selectedItem: _selectedCustomer,
+                                            search: (filter) async {
+                                              final ds = ref.read(
+                                                customerRemoteDataSourceProvider,
+                                              );
+                                              final page = await ds.list(
+                                                search: filter.isEmpty
+                                                    ? null
+                                                    : filter,
+                                                size: 30,
+                                              );
+                                              return page.content;
+                                            },
+                                            itemLabel: (c) => c.phone != null
+                                                ? '${c.name} (${c.phone})'
+                                                : c.name,
+                                            onChanged: _submitting
+                                                ? (_) {}
+                                                : _onCustomerSelected,
+                                          ),
+                                          const SizedBox(
+                                            height: AppSpacing.smMd,
+                                          ),
+                                          AppTextField(
+                                            controller: _nameCtrl,
+                                            label: 'Customer name',
+                                            enabled: !_submitting,
+                                            onChanged: (_) {
+                                              if (_selectedCustomer != null) {
+                                                setState(
+                                                  () =>
+                                                      _selectedCustomer = null,
+                                                );
+                                              }
+                                            },
+                                          ),
+                                          const SizedBox(
+                                            height: AppSpacing.smMd,
+                                          ),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: AppTextField(
+                                                  controller: _phoneCtrl,
+                                                  label: 'Phone number',
+                                                  keyboardType:
+                                                      TextInputType.phone,
+                                                  enabled: !_submitting,
+                                                ),
+                                              ),
+                                              const SizedBox(
+                                                width: AppSpacing.smMd,
+                                              ),
+                                              Expanded(
+                                                child: AppTextField(
+                                                  controller: _panCtrl,
+                                                  label: 'PAN',
+                                                  enabled: !_submitting,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(
+                                            height: AppSpacing.smMd,
+                                          ),
+                                          AppTextField.multiline(
+                                            controller: _remarkCtrl,
+                                            label: 'Note (optional)',
+                                            enabled: !_submitting,
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              Text(
-                                formatMoneyAmount(item.lineTotal),
-                                style: AppTypography.body,
+
+                              AppFormError(message: _errorMessage),
+                              const SizedBox(height: AppSpacing.md),
+
+                              BrandActionButton(
+                                label: 'Save Bill / बिल सुरक्षित गर्नुहोस्',
+                                icon: Icons.check_circle_outline_rounded,
+                                loading: _submitting,
+                                onPressed: _submit,
                               ),
                             ],
-                          );
-                        },
+                          ),
+                        ),
                       ),
-                    ),
-                    const Divider(height: 1),
-                    Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        children: [
-                          _SummaryRow(
-                            label: 'Subtotal',
-                            value: formatMoneyAmount(_subtotal),
+                    ],
+                  ),
+                );
+
+                final summaryPanel = SectionPanel(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SectionPanelHeader(
+                        icon: Icons.receipt_long_rounded,
+                        eyebrow: 'ORDER SUMMARY',
+                        subtitle: widget.cart.length == 1
+                            ? '1 line on this bill'
+                            : '${widget.cart.length} lines on this bill',
+                        trailing: SectionBadge(label: '${widget.cart.length}'),
+                      ),
+                      Expanded(
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.smMd,
                           ),
-                          if (_billDiscount > 0)
-                            _SummaryRow(
-                              label: 'Discount',
-                              value: '- ${formatMoneyAmount(_billDiscount)}',
+                          itemCount: widget.cart.length,
+                          separatorBuilder: (_, _) => const Divider(
+                            height: AppSpacing.md,
+                            color: AppColors.border,
+                          ),
+                          itemBuilder: (ctx, i) =>
+                              _SummaryItem(item: widget.cart[i]),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceSunken,
+                          border: const Border(
+                            top: BorderSide(color: AppColors.border),
+                          ),
+                          boxShadow: AppShadows.bottomBar,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TotalLine(
+                              label: 'Subtotal',
+                              value: formatMoneyAmount(_subtotal),
                             ),
-                          const Divider(height: AppSpacing.smMd),
-                          _SummaryRow(
-                            label: 'Estimated Total',
-                            value: 'Rs. ${formatMoneyAmount(_netTotal)}',
-                            bold: true,
-                          ),
-                          if (change != null && change > 0) ...[
+                            if (_billDiscount > 0)
+                              TotalLine(
+                                label: 'Discount',
+                                value: '- ${formatMoneyAmount(_billDiscount)}',
+                              ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'ESTIMATED TOTAL',
+                                    style: AppTypography.eyebrow.copyWith(
+                                      color: AppColors.textMuted,
+                                    ),
+                                  ),
+                                ),
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                      'Rs. ${formatMoneyAmount(_netTotal)}',
+                                      style: AppTypography.price,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (change != null && change > 0) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              TotalLine(
+                                label: 'Change to return',
+                                value: 'Rs. ${formatMoneyAmount(change)}',
+                                emphasize: true,
+                              ),
+                            ],
                             const SizedBox(height: AppSpacing.xs),
-                            _SummaryRow(
-                              label: 'Change to return',
-                              value: formatMoneyAmount(change),
+                            Text(
+                              'Final total is confirmed once the bill is saved.',
+                              style: AppTypography.caption,
                             ),
                           ],
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            'Final total confirmed after saving.',
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
+                    ],
+                  ),
+                );
+
+                if (isWide) {
+                  return Padding(
+                    padding: EdgeInsets.all(gutter),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(flex: 3, child: formPanel),
+                        SizedBox(width: gutter),
+                        Expanded(flex: 2, child: summaryPanel),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            ],
+                  );
+                }
+
+                return Padding(
+                  padding: EdgeInsets.all(gutter),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(flex: 3, child: formPanel),
+                      SizedBox(height: gutter),
+                      Expanded(flex: 2, child: summaryPanel),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -567,33 +617,103 @@ class _PosPaymentStepState extends ConsumerState<PosPaymentStep> {
   }
 }
 
-class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({
-    required this.label,
-    required this.value,
-    this.bold = false,
-  });
-
-  final String label;
-  final String value;
-  final bool bold;
+/// The light strip under the payment header that advertises the arrow-key
+/// controls, so a cashier never has to reach for the mouse.
+class _KeyboardHintStrip extends StatelessWidget {
+  const _KeyboardHintStrip();
 
   @override
   Widget build(BuildContext context) {
-    final style = bold ? AppTypography.subtitle : AppTypography.bodySmall;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
       child: Row(
         children: [
+          const Icon(
+            Icons.keyboard_alt_outlined,
+            size: 16,
+            color: AppColors.textMuted,
+          ),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
-              label,
-              style: bold ? style : style.copyWith(color: AppColors.textMuted),
+              'Up/Down move between fields · Right opens or confirms'
+              ' · Left goes back',
+              style: AppTypography.caption,
             ),
           ),
-          Text(value, style: style),
         ],
       ),
+    );
+  }
+}
+
+/// One line of the order summary.
+class _SummaryItem extends StatelessWidget {
+  const _SummaryItem({required this.item});
+
+  final PosCartItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final qty = item.quantity % 1 == 0
+        ? item.quantity.toInt().toString()
+        : item.quantity.toStringAsFixed(2);
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.primarySoft,
+            borderRadius: AppBorderRadius.radiusSM,
+          ),
+          child: Text(
+            'x$qty',
+            style: AppTypography.priceSmall.copyWith(
+              fontSize: 12,
+              color: AppColors.primaryDeep,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.smMd),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                item.productName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                '${formatMoneyAmount(item.rate)} each',
+                style: AppTypography.caption,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text(
+          formatMoneyAmount(item.lineTotal),
+          style: AppTypography.priceSmall,
+        ),
+      ],
     );
   }
 }

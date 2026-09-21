@@ -8,6 +8,7 @@ import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/inventory_categories_model.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
 import '../../../../data/models/models_user/inventory_units_model.dart';
+import '../../../shared/widgets/section_ui.dart';
 import '../controllers/inventory_products_controller.dart';
 import 'barcode_scanner_screen.dart';
 
@@ -207,133 +208,207 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
             policy: WidgetOrderTraversalPolicy(),
             child: Form(
               key: _key,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text('Add product', style: AppTypography.heading),
-                  const SizedBox(height: AppSpacing.lg),
-                  AppTextField(
-                    controller: _name,
-                    label: 'Name',
-                    autofocus: true,
-                    textInputAction: TextInputAction.next,
-                    onSubmitted: (_) => _scope.nextFocus(),
-                    validator: (v) => (v ?? '').trim().isEmpty
-                        ? 'Enter a product name.'
-                        : null,
-                  ),
-                  const SizedBox(height: AppSpacing.smMd),
-                  AppDropdownField<InventoryCategoryModel>(
-                    label: 'Category',
-                    value: _category,
-                    items: [
-                      for (final category in state.categoryOptions)
-                        DropdownMenuItem(
-                          value: category,
-                          child: Text(category.name),
-                        ),
-                    ],
-                    hint: 'Choose a category',
-                    onChanged: _saving
-                        ? (_) {}
-                        : (v) => _advanceAfterSelection(
-                            () => setState(() => _category = v),
+              child: SectionPanel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SectionPanelHeader(
+                      icon: Icons.add_box_rounded,
+                      eyebrow: 'NEW PRODUCT',
+                      subtitle: 'Name it, price it, save it',
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const _FormSectionLabel('What is it?'),
+                          AppTextField(
+                            controller: _name,
+                            label: 'Name',
+                            autofocus: true,
+                            textInputAction: TextInputAction.next,
+                            onSubmitted: (_) => _scope.nextFocus(),
+                            validator: (v) => (v ?? '').trim().isEmpty
+                                ? 'Enter a product name.'
+                                : null,
                           ),
-                  ),
-                  const SizedBox(height: AppSpacing.smMd),
-                  AppTextField(
-                    controller: _barcode,
-                    label: 'Barcode (optional)',
-                    suffixIcon: Icons.qr_code_scanner_outlined,
-                    onSuffixTap: _saving ? null : _scan,
-                    textInputAction: TextInputAction.next,
-                    onSubmitted: (_) => _scope.nextFocus(),
-                  ),
-                  const SizedBox(height: AppSpacing.smMd),
-                  _price(
-                    'Buy at',
-                    _buyPrice,
-                    _buy ?? _sell,
-                    compatible,
-                    (v) => setState(() => _buy = v),
-                  ),
-                  const SizedBox(height: AppSpacing.smMd),
-                  _price(
-                    'Sell at',
-                    _sellPrice,
-                    _sell,
-                    units,
-                    (v) => setState(() {
-                      _sell = v;
-                      _buy = null;
-                      _extra = null;
-                    }),
-                    required: true,
-                  ),
-                  if (_needsPack(_buy ?? _sell)) ...[
-                    const SizedBox(height: AppSpacing.smMd),
-                    _contains(
-                      _buyQty,
-                      _buyContains,
-                      compatible,
-                      (v) => setState(() => _buyContains = v),
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.smMd),
-                  ExpansionTile(
-                    title: const Text('Buy in bulk / sell in multiple units'),
-                    subtitle: const Text(
-                      'Add a supplier pack or another selling size.',
-                    ),
-                    onExpansionChanged: (v) => setState(() => _advanced = v),
-                    children: [
-                      if (_advanced)
-                        Padding(
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          child: Column(
-                            children: [
-                              AppDropdownField<InventoryUnitModel>(
-                                label: 'Extra selling unit',
-                                value: _extra,
-                                items: _unitItems(compatible),
-                                hint: 'Optional',
-                                onChanged: (v) => _advanceAfterSelection(
-                                  () => setState(() => _extra = v),
+                          const SizedBox(height: AppSpacing.smMd),
+                          AppDropdownField<InventoryCategoryModel>(
+                            label: 'Category',
+                            value: _category,
+                            items: [
+                              for (final category in state.categoryOptions)
+                                DropdownMenuItem(
+                                  value: category,
+                                  child: Text(category.name),
+                                ),
+                            ],
+                            hint: 'Choose a category',
+                            onChanged: _saving
+                                ? (_) {}
+                                : (v) => _advanceAfterSelection(
+                                    () => setState(() => _category = v),
+                                  ),
+                          ),
+                          const SizedBox(height: AppSpacing.smMd),
+                          AppTextField(
+                            controller: _barcode,
+                            label: 'Barcode (optional)',
+                            suffixIcon: Icons.qr_code_scanner_outlined,
+                            onSuffixTap: _saving ? null : _scan,
+                            textInputAction: TextInputAction.next,
+                            onSubmitted: (_) => _scope.nextFocus(),
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          const _FormSectionLabel('What does it cost?'),
+                          _price(
+                            'Buy at',
+                            _buyPrice,
+                            _buy ?? _sell,
+                            compatible,
+                            (v) => setState(() => _buy = v),
+                          ),
+                          const SizedBox(height: AppSpacing.smMd),
+                          _price(
+                            'Sell at',
+                            _sellPrice,
+                            _sell,
+                            units,
+                            (v) => setState(() {
+                              _sell = v;
+                              _buy = null;
+                              _extra = null;
+                            }),
+                            required: true,
+                          ),
+                          if (_needsPack(_buy ?? _sell)) ...[
+                            const SizedBox(height: AppSpacing.smMd),
+                            _contains(
+                              _buyQty,
+                              _buyContains,
+                              compatible,
+                              (v) => setState(() => _buyContains = v),
+                            ),
+                          ],
+                          const SizedBox(height: AppSpacing.smMd),
+                          _MarginReadout(
+                            buy: _num(_buyPrice),
+                            sell: _num(_sellPrice),
+                            unit: _sell?.symbol,
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          const _FormSectionLabel('How is it packed?'),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: AppBorderRadius.radiusL,
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: ExpansionTile(
+                              shape: const Border(),
+                              collapsedShape: const Border(),
+                              tilePadding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                              ),
+                              title: Text(
+                                'Buy in bulk / sell in multiple units',
+                                style: AppTypography.bodySmall.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
-                              if (_extra != null) ...[
-                                const SizedBox(height: AppSpacing.smMd),
-                                AppTextField(
-                                  controller: _extraPrice,
-                                  label: 'Extra selling price',
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                ),
-                                if (_needsPack(_extra)) ...[
-                                  const SizedBox(height: AppSpacing.smMd),
-                                  _contains(
-                                    _extraQty,
-                                    _extraContains,
-                                    compatible,
-                                    (v) => setState(() => _extraContains = v),
+                              subtitle: Text(
+                                'Add a supplier pack or another selling size.',
+                                style: AppTypography.caption,
+                              ),
+                              onExpansionChanged: (v) =>
+                                  setState(() => _advanced = v),
+                              children: [
+                                if (_advanced)
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      AppSpacing.md,
+                                      0,
+                                      AppSpacing.md,
+                                      AppSpacing.md,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        AppDropdownField<InventoryUnitModel>(
+                                          label: 'Extra selling unit',
+                                          value: _extra,
+                                          items: _unitItems(compatible),
+                                          hint: 'Optional',
+                                          onChanged: (v) =>
+                                              _advanceAfterSelection(
+                                                () =>
+                                                    setState(() => _extra = v),
+                                              ),
+                                        ),
+                                        if (_extra != null) ...[
+                                          const SizedBox(
+                                            height: AppSpacing.smMd,
+                                          ),
+                                          AppTextField(
+                                            controller: _extraPrice,
+                                            label: 'Extra selling price',
+                                            keyboardType:
+                                                const TextInputType.numberWithOptions(
+                                                  decimal: true,
+                                                ),
+                                          ),
+                                          if (_needsPack(_extra)) ...[
+                                            const SizedBox(
+                                              height: AppSpacing.smMd,
+                                            ),
+                                            _contains(
+                                              _extraQty,
+                                              _extraContains,
+                                              compatible,
+                                              (v) => setState(
+                                                () => _extraContains = v,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ],
+                                    ),
                                   ),
-                                ],
                               ],
-                            ],
+                            ),
                           ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: const BoxDecoration(
+                        color: AppColors.surfaceSunken,
+                        border: Border(
+                          top: BorderSide(color: AppColors.border),
                         ),
-                    ],
-                  ),
-                  AppFormError(message: _error),
-                  const SizedBox(height: AppSpacing.lg),
-                  AppButton.expanded(
-                    label: 'Save product',
-                    isLoading: _saving,
-                    onPressed: _saving ? null : () => _save(units),
-                  ),
-                ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AppFormError(message: _error),
+                          if (_error != null)
+                            const SizedBox(height: AppSpacing.sm),
+                          BrandActionButton(
+                            label: 'Save product',
+                            icon: Icons.check_circle_outline_rounded,
+                            loading: _saving,
+                            onPressed: () => _save(units),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -359,6 +434,8 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           textInputAction: TextInputAction.next,
           onSubmitted: (_) => _scope.nextFocus(),
+          // Keeps the margin read-out in step with what is typed.
+          onChanged: (_) => setState(() {}),
           validator: required
               ? (v) => _num(controller) == null ? 'Enter a valid price.' : null
               : null,
@@ -419,4 +496,118 @@ class _QuickProductFormState extends ConsumerState<QuickProductForm> {
         child: Text('${unit.name} (${unit.symbol})'),
       ),
   ];
+}
+
+class _FormSectionLabel extends StatelessWidget {
+  const _FormSectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.smMd),
+      child: Row(
+        children: [
+          Text(
+            text.toUpperCase(),
+            style: AppTypography.eyebrow.copyWith(
+              fontSize: 10,
+              letterSpacing: 0.8,
+              color: AppColors.primaryDeep,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.smMd),
+          const Expanded(child: Divider(height: 1, color: AppColors.border)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Live profit read-out. A shopkeeper's real question while typing two
+/// prices is "what do I make on this?" — and, more urgently, "am I about to
+/// sell it for less than I paid?".
+class _MarginReadout extends StatelessWidget {
+  const _MarginReadout({required this.buy, required this.sell, this.unit});
+
+  final double? buy;
+  final double? sell;
+  final String? unit;
+
+  @override
+  Widget build(BuildContext context) {
+    if (buy == null || sell == null || buy! <= 0 || sell! <= 0) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.smMd,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppBorderRadius.radiusMD,
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.calculate_outlined,
+              size: 16,
+              color: AppColors.textMuted,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                'Enter both prices to see the profit per sale.',
+                style: AppTypography.caption,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final profit = sell! - buy!;
+    final margin = profit / sell! * 100;
+    final losing = profit < 0;
+    final color = losing ? AppColors.error : AppColors.success;
+    final perUnit = unit == null ? '' : ' per $unit';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.smMd,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: losing ? AppColors.errorSoft : AppColors.successSoft,
+        borderRadius: AppBorderRadius.radiusMD,
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            losing ? Icons.trending_down_rounded : Icons.trending_up_rounded,
+            size: 18,
+            color: color,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              losing
+                  ? 'Selling below cost$perUnit'
+                  : 'You make ${formatMoney(profit)}$perUnit',
+              style: AppTypography.bodySmall.copyWith(
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+          Text(
+            '${margin.toStringAsFixed(0)}%',
+            style: AppTypography.priceSmall.copyWith(color: color),
+          ),
+        ],
+      ),
+    );
+  }
 }

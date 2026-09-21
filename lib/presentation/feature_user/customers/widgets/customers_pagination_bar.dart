@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/core.dart';
+import '../../../shared/widgets/section_ui.dart';
 
+/// Paging footer for the customers panel.
 class CustomersPaginationBar extends StatelessWidget {
   const CustomersPaginationBar({
     super.key,
@@ -24,29 +25,15 @@ class CustomersPaginationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pageLabel = totalPages == 0
-        ? 'No results'
-        : 'Page $pageNumber of $totalPages · $totalElements customer${totalElements == 1 ? '' : 's'}';
-
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            pageLabel,
-            style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
-          ),
-        ),
-        IconButton(
-          onPressed: hasPrevious ? onPrevious : null,
-          icon: const Icon(Icons.chevron_left_rounded),
-          tooltip: 'Previous page',
-        ),
-        IconButton(
-          onPressed: hasNext ? onNext : null,
-          icon: const Icon(Icons.chevron_right_rounded),
-          tooltip: 'Next page',
-        ),
-      ],
+    return SectionPaginationBar(
+      pageNumber: pageNumber,
+      totalPages: totalPages,
+      totalElements: totalElements,
+      itemNoun: 'customer',
+      hasPrevious: hasPrevious,
+      hasNext: hasNext,
+      onPrevious: onPrevious,
+      onNext: onNext,
     );
   }
 }

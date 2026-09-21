@@ -6,6 +6,7 @@ import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/inventory_categories_model.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
 import '../../../../data/models/models_user/inventory_units_model.dart';
+import '../../../shared/widgets/section_ui.dart';
 import '../controllers/inventory_products_controller.dart';
 
 /// Add/edit form for one product. Calls [Navigator.pop] with `true` when
@@ -29,16 +30,21 @@ class InventoryProductForm extends ConsumerStatefulWidget {
   bool get isEditing => product != null;
 
   @override
-  ConsumerState<InventoryProductForm> createState() => _InventoryProductFormState();
+  ConsumerState<InventoryProductForm> createState() =>
+      _InventoryProductFormState();
 }
 
 class _InventoryProductFormState extends ConsumerState<InventoryProductForm> {
   final _formKey = GlobalKey<FormState>();
 
   late final _name = TextEditingController(text: widget.product?.name);
-  late final _productCode = TextEditingController(text: widget.product?.productCode);
+  late final _productCode = TextEditingController(
+    text: widget.product?.productCode,
+  );
   late final _baseCode = TextEditingController(text: widget.product?.baseCode);
-  late final _description = TextEditingController(text: widget.product?.description);
+  late final _description = TextEditingController(
+    text: widget.product?.description,
+  );
   late final _brand = TextEditingController(text: widget.product?.brand);
   late final _image = TextEditingController(text: widget.product?.image);
 
@@ -53,7 +59,9 @@ class _InventoryProductFormState extends ConsumerState<InventoryProductForm> {
     super.initState();
     _active = widget.product?.active ?? true;
     if (!widget.isEditing) {
-      ref.read(inventoryProductsControllerProvider.notifier).ensureUnitOptionsLoaded();
+      ref
+          .read(inventoryProductsControllerProvider.notifier)
+          .ensureUnitOptionsLoaded();
     }
   }
 
@@ -142,107 +150,173 @@ class _InventoryProductFormState extends ConsumerState<InventoryProductForm> {
 
     return Form(
       key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (widget.isEditing) ...[
-            _SectionLabel('Fixed at creation'),
-            _ReadOnlyRow(
-              label: 'Category',
-              value: widget.product?.categoryName ?? '—',
-              icon: Icons.category_outlined,
+      child: SectionPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SectionPanelHeader(
+              icon: widget.isEditing
+                  ? Icons.edit_note_rounded
+                  : Icons.add_box_rounded,
+              eyebrow: widget.isEditing ? 'EDIT PRODUCT' : 'NEW PRODUCT',
+              subtitle: widget.isEditing
+                  ? widget.product?.name ?? 'Update this product'
+                  : 'Add a product to the catalogue',
             ),
-            _ReadOnlyRow(
-              label: 'Base unit',
-              value: widget.product?.baseUnit == null
-                  ? '—'
-                  : '${widget.product!.baseUnit!.name} (${widget.product!.baseUnit!.symbol})',
-              icon: Icons.straighten_outlined,
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: _buildFields(categoryOptions, baseUnitOptions),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            _SectionLabel('Details'),
-          ] else ...[
-            _SectionLabel('Category & base unit'),
-            AppSearchableDropdownField<InventoryCategoryModel>(
-              label: 'Category',
-              selectedItem: _category,
-              items: categoryOptions,
-              itemLabel: (c) => c.name,
-              hint: 'Select a category',
-              onChanged: (value) => setState(() => _category = value),
-              validator: (value) => value == null ? 'Category is required' : null,
-            ),
-            const SizedBox(height: AppSpacing.smMd),
-            AppSearchableDropdownField<InventoryUnitModel>(
-              label: 'Base unit',
-              selectedItem: _baseUnit,
-              items: baseUnitOptions,
-              itemLabel: (u) => '${u.name} (${u.symbol})',
-              hint: 'Select a unit',
-              onChanged: (value) => setState(() => _baseUnit = value),
-              validator: (value) => value == null ? 'Base unit is required' : null,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _SectionLabel('Details'),
-          ],
-          AppTextField(
-            controller: _name,
-            label: 'Name',
-            enabled: !_submitting,
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Name is required' : null,
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          AppTextField(
-            controller: _productCode,
-            label: 'Product code',
-            enabled: !_submitting,
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          AppTextField(
-            controller: _baseCode,
-            label: 'Base code',
-            enabled: !_submitting,
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          AppTextField(
-            controller: _brand,
-            label: 'Brand',
-            enabled: !_submitting,
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          AppTextField.multiline(
-            controller: _description,
-            label: 'Description',
-            enabled: !_submitting,
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          AppTextField(
-            controller: _image,
-            label: 'Image URL',
-            hint: 'https://…',
-            keyboardType: TextInputType.url,
-            enabled: !_submitting,
-          ),
-          if (widget.isEditing) ...[
-            const SizedBox(height: AppSpacing.smMd),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Active', style: AppTypography.body),
-              value: _active,
-              onChanged: _submitting ? null : (value) => setState(() => _active = value),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceSunken,
+                border: Border(top: BorderSide(color: AppColors.border)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppFormError(message: _errorMessage),
+                  if (_errorMessage != null)
+                    const SizedBox(height: AppSpacing.sm),
+                  BrandActionButton(
+                    label: widget.isEditing ? 'Save changes' : 'Add product',
+                    icon: Icons.check_circle_outline_rounded,
+                    loading: _submitting,
+                    onPressed: _submit,
+                  ),
+                ],
+              ),
             ),
           ],
-          AppFormError(message: _errorMessage),
-          const SizedBox(height: AppSpacing.xl),
-          AppButton.expanded(
-            label: widget.isEditing ? 'Save changes' : 'Add product',
-            isLoading: _submitting,
-            onPressed: _submitting ? null : _submit,
-          ),
-          const SizedBox(height: AppSpacing.xl),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildFields(
+    List<InventoryCategoryModel> categoryOptions,
+    List<InventoryUnitModel> baseUnitOptions,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (widget.isEditing) ...[
+          _SectionLabel('Fixed at creation'),
+          _ReadOnlyRow(
+            label: 'Category',
+            value: widget.product?.categoryName ?? 'Not set',
+            icon: Icons.category_outlined,
+          ),
+          _ReadOnlyRow(
+            label: 'Base unit',
+            value: widget.product?.baseUnit == null
+                ? 'Not set'
+                : '${widget.product!.baseUnit!.name} (${widget.product!.baseUnit!.symbol})',
+            icon: Icons.straighten_outlined,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _SectionLabel('Details'),
+        ] else ...[
+          _SectionLabel('Category & base unit'),
+          AppSearchableDropdownField<InventoryCategoryModel>(
+            label: 'Category',
+            selectedItem: _category,
+            items: categoryOptions,
+            itemLabel: (c) => c.name,
+            hint: 'Select a category',
+            onChanged: (value) => setState(() => _category = value),
+            validator: (value) => value == null ? 'Category is required' : null,
+          ),
+          const SizedBox(height: AppSpacing.smMd),
+          AppSearchableDropdownField<InventoryUnitModel>(
+            label: 'Base unit',
+            selectedItem: _baseUnit,
+            items: baseUnitOptions,
+            itemLabel: (u) => '${u.name} (${u.symbol})',
+            hint: 'Select a unit',
+            onChanged: (value) => setState(() => _baseUnit = value),
+            validator: (value) =>
+                value == null ? 'Base unit is required' : null,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _SectionLabel('Details'),
+        ],
+        AppTextField(
+          controller: _name,
+          label: 'Name',
+          enabled: !_submitting,
+          validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+        ),
+        const SizedBox(height: AppSpacing.smMd),
+        AppTextField(
+          controller: _productCode,
+          label: 'Product code',
+          enabled: !_submitting,
+        ),
+        const SizedBox(height: AppSpacing.smMd),
+        AppTextField(
+          controller: _baseCode,
+          label: 'Base code',
+          enabled: !_submitting,
+        ),
+        const SizedBox(height: AppSpacing.smMd),
+        AppTextField(controller: _brand, label: 'Brand', enabled: !_submitting),
+        const SizedBox(height: AppSpacing.smMd),
+        AppTextField.multiline(
+          controller: _description,
+          label: 'Description',
+          enabled: !_submitting,
+        ),
+        const SizedBox(height: AppSpacing.smMd),
+        AppTextField(
+          controller: _image,
+          label: 'Image URL',
+          hint: 'https://…',
+          keyboardType: TextInputType.url,
+          enabled: !_submitting,
+        ),
+        if (widget.isEditing) ...[
+          const SizedBox(height: AppSpacing.smMd),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: AppBorderRadius.radiusL,
+              border: Border.all(color: AppColors.border),
+            ),
+            child: SwitchListTile.adaptive(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.xs,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: AppBorderRadius.radiusL,
+              ),
+              title: Text(
+                'Active',
+                style: AppTypography.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              subtitle: Text(
+                _active
+                    ? 'Shown on the till and in listings.'
+                    : 'Hidden from the till and listings.',
+                style: AppTypography.caption,
+              ),
+              value: _active,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(() => _active = value),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -261,7 +335,11 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _ReadOnlyRow extends StatelessWidget {
-  const _ReadOnlyRow({required this.label, required this.value, required this.icon});
+  const _ReadOnlyRow({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   final String label;
   final String value;
@@ -275,7 +353,10 @@ class _ReadOnlyRow extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: AppColors.iconInactive),
           const SizedBox(width: AppSpacing.sm),
-          Text(label, style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted)),
+          Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(

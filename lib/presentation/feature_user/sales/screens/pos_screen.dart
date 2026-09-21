@@ -6,11 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/core.dart';
 import '../../../../core/network/api_exception.dart';
-import '../../../../data/models/models_shared/commerce_model.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
 import '../../../../data/models/models_user/sale_model.dart';
 import '../../../../providers/providers_user/inventory_products_provider.dart';
-import '../controllers/sales_controller.dart';
 import '../models/pos_cart_item.dart';
 import '../widgets/pos_payment_step.dart';
 import '../widgets/pos_print_step.dart';
@@ -212,7 +210,7 @@ class PosScreenState extends ConsumerState<PosScreen> {
             sellingUnitLabel: unit.unit.symbol.isNotEmpty
                 ? unit.unit.symbol
                 : unit.unit.name,
-            rate: unit.sellingPrice ?? 0,
+            rate: unit.sellingPrice,
           ),
         );
         _selectedCartIndex = _cart.length - 1;
@@ -300,15 +298,19 @@ class PosScreenState extends ConsumerState<PosScreen> {
         ),
         if (_scanningBarcode)
           Positioned(
-            top: 16,
-            right: 16,
-            child: Material(
-              elevation: 4,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
+            top: AppSpacing.lg,
+            right: AppSpacing.lg,
+            child: AppScaleIn(
+              child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.smMd,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: AppBorderRadius.radiusFull,
+                  border: Border.all(color: AppColors.primary),
+                  boxShadow: AppShadows.floating,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -316,12 +318,18 @@ class PosScreenState extends ConsumerState<PosScreen> {
                     const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primaryDeep,
+                      ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: AppSpacing.smMd),
                     Text(
                       'Looking up barcode...',
-                      style: AppTypography.bodySmall,
+                      style: AppTypography.bodySmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ],
                 ),

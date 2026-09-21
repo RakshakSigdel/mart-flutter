@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/core.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
+import '../../../shared/widgets/section_ui.dart';
 import '../controllers/inventory_product_detail_controller.dart';
 import '../widgets/inventory_product_purchase_unit_dialog.dart';
 import '../widgets/inventory_product_purchase_unit_section.dart';
@@ -13,6 +14,7 @@ import '../widgets/inventory_product_selling_unit_section.dart';
 import '../widgets/inventory_product_vat_history_dialog.dart';
 import '../widgets/inventory_products_badges.dart';
 import '../widgets/inventory_products_confirm_dialog.dart';
+import '../widgets/product_thumb.dart';
 
 /// One product's detail page: its record and its trading configuration —
 /// purchase units (with VAT history) and selling units — the one thing the
@@ -30,7 +32,9 @@ class InventoryProductDetailScreen extends ConsumerWidget {
       ref.read(inventoryProductDetailControllerProvider(productId).notifier);
 
   Future<void> _editProduct(BuildContext context, WidgetRef ref) async {
-    final result = await context.push<bool>(Routes.inventoryProductEdit(productId));
+    final result = await context.push<bool>(
+      Routes.inventoryProductEdit(productId),
+    );
     if (result == true) {
       if (context.mounted) AppSnackBar.success(context, 'Product updated.');
       _notifier(ref).refresh();
@@ -43,8 +47,9 @@ class InventoryProductDetailScreen extends ConsumerWidget {
     final notifier = _notifier(ref);
     await notifier.ensureUnitOptionsLoaded();
     if (!context.mounted) return;
-    final unitOptions =
-        ref.read(inventoryProductDetailControllerProvider(productId)).unitOptions;
+    final unitOptions = ref
+        .read(inventoryProductDetailControllerProvider(productId))
+        .unitOptions;
     final result = await showInventoryProductPurchaseUnitDialog(
       context,
       productId: productId,
@@ -113,8 +118,9 @@ class InventoryProductDetailScreen extends ConsumerWidget {
     final notifier = _notifier(ref);
     await notifier.ensureUnitOptionsLoaded();
     if (!context.mounted) return;
-    final unitOptions =
-        ref.read(inventoryProductDetailControllerProvider(productId)).unitOptions;
+    final unitOptions = ref
+        .read(inventoryProductDetailControllerProvider(productId))
+        .unitOptions;
     final result = await showInventoryProductSellingUnitDialog(
       context,
       productId: productId,
@@ -171,11 +177,12 @@ class InventoryProductDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(inventoryProductDetailControllerProvider(productId));
+    final state = ref.watch(
+      inventoryProductDetailControllerProvider(productId),
+    );
     final product = state.product;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: AppColors.background,
         title: Text(product?.name ?? 'Product'),
@@ -189,7 +196,10 @@ class InventoryProductDetailScreen extends ConsumerWidget {
           const SizedBox(width: AppSpacing.sm),
         ],
       ),
-      body: _buildBody(context, ref, state, product),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: AppGradients.background),
+        child: _buildBody(context, ref, state, product),
+      ),
     );
   }
 
@@ -220,40 +230,85 @@ class InventoryProductDetailScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AppCard(
+              SectionPanel(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(product.name, style: AppTypography.title),
-                        ),
-                        ActiveStatusBadge(active: product.active),
-                      ],
+                    SectionPanelHeader(
+                      icon: Icons.inventory_2_rounded,
+                      eyebrow: 'PRODUCT',
+                      subtitle: product.categoryName?.isNotEmpty == true
+                          ? 'In ${product.categoryName}'
+                          : 'Uncategorised',
+                      trailing: ActiveStatusBadge(active: product.active),
                     ),
-                    if (product.description != null && product.description!.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        product.description!,
-                        style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              ProductThumb(
+                                name: product.name,
+                                imageUrl: product.image,
+                                size: 56,
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      product.name,
+                                      style: AppTypography.title,
+                                    ),
+                                    if (product.description?.isNotEmpty ==
+                                        true) ...[
+                                      const SizedBox(height: AppSpacing.xs),
+                                      Text(
+                                        product.description!,
+                                        style: AppTypography.bodySmall.copyWith(
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          const Divider(height: 1, color: AppColors.border),
+                          const SizedBox(height: AppSpacing.md),
+                          _InfoRow(
+                            label: 'Category',
+                            value: product.categoryName ?? 'Not set',
+                          ),
+                          _InfoRow(
+                            label: 'Base unit',
+                            value: product.baseUnit == null
+                                ? 'Not set'
+                                : '${product.baseUnit!.name} (${product.baseUnit!.symbol})',
+                          ),
+                          if (product.productCode != null)
+                            _InfoRow(
+                              label: 'Product code',
+                              value: product.productCode!,
+                            ),
+                          if (product.baseCode != null)
+                            _InfoRow(
+                              label: 'Base code',
+                              value: product.baseCode!,
+                            ),
+                          if (product.brand != null)
+                            _InfoRow(label: 'Brand', value: product.brand!),
+                        ],
                       ),
-                    ],
-                    const SizedBox(height: AppSpacing.smMd),
-                    const Divider(height: 1),
-                    const SizedBox(height: AppSpacing.smMd),
-                    _InfoRow(label: 'Category', value: product.categoryName ?? '—'),
-                    _InfoRow(
-                      label: 'Base unit',
-                      value: product.baseUnit == null
-                          ? '—'
-                          : '${product.baseUnit!.name} (${product.baseUnit!.symbol})',
                     ),
-                    if (product.productCode != null)
-                      _InfoRow(label: 'Product code', value: product.productCode!),
-                    if (product.baseCode != null)
-                      _InfoRow(label: 'Base code', value: product.baseCode!),
-                    if (product.brand != null) _InfoRow(label: 'Brand', value: product.brand!),
                   ],
                 ),
               ),
@@ -293,7 +348,10 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          Text(label, style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted)),
+          Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(

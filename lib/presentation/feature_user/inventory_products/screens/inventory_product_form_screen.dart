@@ -42,37 +42,45 @@ class _InventoryProductFormScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: AppColors.background,
         title: Text(widget.isEditing ? 'Edit product' : 'Add product'),
       ),
-      body: FutureBuilder<ProductDetailModel?>(
-        future: _productFuture,
-        builder: (context, snapshot) {
-          if (widget.isEditing &&
-              snapshot.connectionState != ConnectionState.done) {
-            return const AppLoader();
-          }
-          if (widget.isEditing && snapshot.hasError) {
-            return AppEmptyState.error(
-              message: 'Could not load this product.',
-              onAction: () =>
-                  setState(() => _productFuture = _resolveProduct()),
-            );
-          }
-          return Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: widget.isEditing
-                    ? InventoryProductForm(product: snapshot.data)
-                    : const QuickProductForm(),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: AppGradients.background),
+        child: FutureBuilder<ProductDetailModel?>(
+          future: _productFuture,
+          builder: (context, snapshot) {
+            if (widget.isEditing &&
+                snapshot.connectionState != ConnectionState.done) {
+              return const AppLoader();
+            }
+            if (widget.isEditing && snapshot.hasError) {
+              return AppEmptyState.error(
+                message: 'Could not load this product.',
+                onAction: () =>
+                    setState(() => _productFuture = _resolveProduct()),
+              );
+            }
+            return LayoutBuilder(
+              builder: (context, constraints) => Center(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(
+                    AppBreakpoints.isPhone(constraints.maxWidth)
+                        ? AppSpacing.sm
+                        : AppSpacing.md,
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 640),
+                    child: widget.isEditing
+                        ? InventoryProductForm(product: snapshot.data)
+                        : const QuickProductForm(),
+                  ),
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/core.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/customer_model.dart';
+import '../../../shared/widgets/section_ui.dart';
 import '../controllers/customers_controller.dart';
 import '../widgets/customer_row_actions.dart';
 import '../widgets/customers_confirm_dialog.dart';
@@ -99,69 +100,104 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(customersControllerProvider);
-    final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= AppBreakpoints.tablet;
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: AppBreakpoints.contentMaxWidth,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CustomersToolbar(
-                searchController: _searchController,
-                onSearchChanged: _onSearchChanged,
-                onSearchSubmitted: (value) {
-                  _searchDebouncer.cancel();
-                  _controller.setSearch(value);
-                  _controller.submitSearch();
-                },
-                onAddPressed: _addCustomer,
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: AppGradients.background),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= AppBreakpoints.tablet;
+          final gutter = AppBreakpoints.isPhone(constraints.maxWidth)
+              ? AppSpacing.sm
+              : AppSpacing.md;
+
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppBreakpoints.contentMaxWidth,
               ),
-              const SizedBox(height: AppSpacing.md),
-              Expanded(child: _buildContent(state, isWide)),
-              const SizedBox(height: AppSpacing.smMd),
-              CustomersPaginationBar(
-                pageNumber: state.pageNumber,
-                totalPages: state.totalPages,
-                totalElements: state.totalElements,
-                hasPrevious: state.hasPreviousPage,
-                hasNext: state.hasNextPage,
-                onPrevious: _controller.previousPage,
-                onNext: _controller.nextPage,
+              child: Padding(
+                padding: EdgeInsets.all(gutter),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    CustomersToolbar(
+                      searchController: _searchController,
+                      onSearchChanged: _onSearchChanged,
+                      onSearchSubmitted: (value) {
+                        _searchDebouncer.cancel();
+                        _controller.setSearch(value);
+                        _controller.submitSearch();
+                      },
+                      onAddPressed: _addCustomer,
+                    ),
+                    SizedBox(height: gutter),
+                    Expanded(
+                      child: SectionPanel(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SectionPanelHeader(
+                              icon: Icons.groups_rounded,
+                              eyebrow: 'CUSTOMERS',
+                              subtitle: state.search.isEmpty
+                                  ? 'Everyone who buys from this mart'
+                                  : 'Matches for "${state.search.trim()}"',
+                              trailing: SectionBadge(
+                                label: '${state.totalElements}',
+                              ),
+                            ),
+                            Expanded(child: _buildContent(state, isWide)),
+                            CustomersPaginationBar(
+                              pageNumber: state.pageNumber,
+                              totalPages: state.totalPages,
+                              totalElements: state.totalElements,
+                              hasPrevious: state.hasPreviousPage,
+                              hasNext: state.hasNextPage,
+                              onPrevious: _controller.previousPage,
+                              onNext: _controller.nextPage,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildContent(CustomersState state, bool isWide) {
     if (state.isLoading) {
-      return AppListSkeleton(itemCount: isWide ? 6 : 4, hasThumbnail: false);
+      return Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: AppListSkeleton(itemCount: isWide ? 6 : 4, hasThumbnail: false),
+      );
     }
 
     if (state.error != null) {
-      return AppEmptyState.error(
-        message: state.error,
-        onAction: _controller.refresh,
+      return CenterOrScroll(
+        child: AppEmptyState.error(
+          message: state.error,
+          onAction: _controller.refresh,
+        ),
       );
     }
 
     if (state.isEmpty) {
-      return AppEmptyState(
-        icon: Icons.people_outline,
-        title: state.search.isEmpty ? 'No customers yet' : 'No results found',
-        message: state.search.isEmpty
-            ? 'Add your first customer to get started.'
-            : 'Try a different search.',
-        actionLabel: state.search.isEmpty ? 'Add customer' : null,
-        onAction: state.search.isEmpty ? _addCustomer : null,
+      return CenterOrScroll(
+        child: AppEmptyState(
+          icon: Icons.people_outline,
+          title: state.search.isEmpty ? 'No customers yet' : 'No results found',
+          message: state.search.isEmpty
+              ? 'Add your first customer to get started.'
+              : 'Try a different search.',
+          actionLabel: state.search.isEmpty ? 'Add customer' : null,
+          onAction: state.search.isEmpty ? _addCustomer : null,
+        ),
       );
     }
 
@@ -176,14 +212,18 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
     }
 
     return ListView.separated(
+      padding: const EdgeInsets.all(AppSpacing.smMd),
       itemCount: state.customers.length,
       separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.smMd),
       itemBuilder: (context, index) {
         final customer = state.customers[index];
-        return CustomerListCard(
-          customer: customer,
-          isBusy: state.busyIds.contains(customer.id),
-          onAction: (action) => _handleRowAction(customer, action),
+        return AppStaggered(
+          index: index,
+          child: CustomerListCard(
+            customer: customer,
+            isBusy: state.busyIds.contains(customer.id),
+            onAction: (action) => _handleRowAction(customer, action),
+          ),
         );
       },
     );

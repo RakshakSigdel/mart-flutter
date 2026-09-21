@@ -9,15 +9,12 @@ import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_shared/commerce_model.dart';
 import '../../../../data/models/models_user/sale_model.dart';
 import '../controllers/sale_detail_controller.dart';
+import '../../../shared/widgets/section_ui.dart';
 
 /// Step 2 of the POS flow - shows the created bill summary and lets the
 /// cashier print the tax invoice, then start a new bill.
 class PosPrintStep extends ConsumerStatefulWidget {
-  const PosPrintStep({
-    super.key,
-    required this.sale,
-    required this.onNewBill,
-  });
+  const PosPrintStep({super.key, required this.sale, required this.onNewBill});
 
   /// The [SaleDetailModel] returned by [SalesController.createSale]. May be
   /// null briefly if the widget is mounted before the sale is created (the
@@ -62,155 +59,352 @@ class _PosPrintStepState extends ConsumerState<PosPrintStep> {
   Widget build(BuildContext context) {
     final sale = widget.sale;
 
-    if (sale == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Success banner
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.1),
-                  borderRadius: AppBorderRadius.radiusL,
-                  border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: AppGradients.background),
+      child: sale == null
+          ? const Center(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppColors.primary,
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.check_circle_outline_rounded,
-                      color: AppColors.success,
-                      size: 32,
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
+              ),
+            )
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final gutter = AppBreakpoints.isPhone(constraints.maxWidth)
+                    ? AppSpacing.sm
+                    : AppSpacing.md;
+                return Center(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(gutter),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 580),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'Bill saved successfully!',
-                            style: AppTypography.subtitle.copyWith(
-                              color: AppColors.success,
-                            ),
+                          _SuccessHero(invoiceNumber: sale.invoiceNumber),
+                          SizedBox(height: gutter),
+                          _ReceiptPanel(sale: sale),
+                          SizedBox(height: gutter),
+                          _PrintPanel(
+                            paperType: _paperType,
+                            printing: _printing,
+                            onPaperTypeChanged: (pt) =>
+                                setState(() => _paperType = pt),
+                            onPrint: _printInvoice,
                           ),
-                          Text(
-                            'Invoice: ${sale.invoiceNumber}',
-                            style: AppTypography.bodySmall,
-                          ),
+                          SizedBox(height: gutter),
+                          _NewBillButton(onPressed: widget.onNewBill),
                         ],
                       ),
                     ),
-                  ],
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
+/// The "sale is done" banner — the payoff at the end of the flow.
+class _SuccessHero extends StatelessWidget {
+  const _SuccessHero({required this.invoiceNumber});
+
+  final String invoiceNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppScaleIn(
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.mdLg),
+        decoration: BoxDecoration(
+          color: AppColors.successSoft,
+          borderRadius: AppBorderRadius.radiusXL,
+          border: Border.all(color: AppColors.success.withValues(alpha: 0.35)),
+          boxShadow: AppShadows.soft,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.success,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.success.withValues(alpha: 0.35),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                size: 30,
+                color: AppColors.textInverse,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Bill saved',
+                    style: AppTypography.title.copyWith(
+                      color: AppColors.success,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    invoiceNumber.isEmpty
+                        ? 'The sale has been recorded.'
+                        : 'Invoice $invoiceNumber has been recorded.',
+                    style: AppTypography.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The saved bill: its lines, then the money in a dark footer.
+class _ReceiptPanel extends StatelessWidget {
+  const _ReceiptPanel({required this.sale});
+
+  final SaleDetailModel sale;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SectionPanelHeader(
+            icon: Icons.receipt_long_rounded,
+            eyebrow: 'RECEIPT',
+            subtitle: sale.invoiceNumber.isEmpty
+                ? 'Saved bill'
+                : 'Invoice ${sale.invoiceNumber}',
+            trailing: SectionBadge(label: '${sale.items.length}'),
+          ),
+          if (sale.items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Text(
+                'No items on this bill.',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textMuted,
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
-
-              // Bill summary card
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.smMd,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 0; i < sale.items.length; i++) ...[
+                    if (i > 0)
+                      const Divider(
+                        height: AppSpacing.md,
+                        color: AppColors.border,
+                      ),
+                    _ItemRow(item: sale.items[i]),
+                  ],
+                ],
+              ),
+            ),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceSunken,
+              border: Border(top: BorderSide(color: AppColors.border)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TotalLine(
+                  label: 'Subtotal',
+                  value: formatMoneyAmount(sale.subTotal),
+                ),
+                if (sale.discountAmount > 0)
+                  TotalLine(
+                    label: 'Discount',
+                    value: '- ${formatMoneyAmount(sale.discountAmount)}',
+                  ),
+                TotalLine(
+                  label: 'VAT',
+                  value: formatMoneyAmount(sale.vatAmount),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Items', style: AppTypography.subtitle),
-                    const SizedBox(height: AppSpacing.smMd),
-                    if (sale.items.isEmpty)
-                      Text(
-                        'No items.',
-                        style: AppTypography.bodySmall.copyWith(
+                    Expanded(
+                      child: Text(
+                        'NET TOTAL',
+                        style: AppTypography.eyebrow.copyWith(
                           color: AppColors.textMuted,
                         ),
-                      )
-                    else
-                      for (var i = 0; i < sale.items.length; i++) ...[
-                        if (i > 0) const Divider(height: AppSpacing.smMd),
-                        _ItemRow(item: sale.items[i]),
-                      ],
-                    const Divider(height: AppSpacing.lg),
-                    _TotalRow(label: 'Subtotal', value: sale.subTotal),
-                    if (sale.discountAmount > 0)
-                      _TotalRow(
-                        label: 'Discount',
-                        value: -sale.discountAmount,
                       ),
-                    _TotalRow(label: 'VAT', value: sale.vatAmount),
-                    const Divider(height: AppSpacing.smMd),
-                    _TotalRow(
-                      label: 'Net Total',
-                      value: sale.netTotal,
-                      emphasize: true,
                     ),
-                    if (sale.changeAmount > 0) ...[
-                      const SizedBox(height: AppSpacing.xs),
-                      _TotalRow(label: 'Paid', value: sale.paidAmount),
-                      _TotalRow(
-                        label: 'Change to return',
-                        value: sale.changeAmount,
-                      ),
-                    ],
-                    if (sale.paymentMethod != null) ...[
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'Payment: ${formatPaymentMethod(sale.paymentMethod)}',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textMuted,
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'Rs. ${formatMoneyAmount(sale.netTotal)}',
+                          style: AppTypography.price,
                         ),
                       ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              // Print options card
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('Print Receipt', style: AppTypography.subtitle),
-                    const SizedBox(height: AppSpacing.smMd),
-                    AppDropdownField<TaxInvoicePaperType>(
-                      label: 'Paper format',
-                      value: _paperType,
-                      enabled: !_printing,
-                      items: [
-                        for (final pt in TaxInvoicePaperType.values)
-                          DropdownMenuItem(
-                            value: pt,
-                            child: Text(pt.label),
-                          ),
-                      ],
-                      onChanged: (pt) {
-                        if (pt != null) setState(() => _paperType = pt);
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.smMd),
-                    AppButton.expanded(
-                      label: 'Print Invoice',
-                      leading: const Icon(Icons.print_rounded, size: 18),
-                      isLoading: _printing,
-                      onPressed: _printing ? null : _printInvoice,
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: AppSpacing.md),
+                if (sale.changeAmount > 0) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  TotalLine(
+                    label: 'Paid',
+                    value: formatMoneyAmount(sale.paidAmount),
+                  ),
+                  TotalLine(
+                    label: 'Change to return',
+                    value: 'Rs. ${formatMoneyAmount(sale.changeAmount)}',
+                    emphasize: true,
+                  ),
+                ],
+                if (sale.paymentMethod != null) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Paid by ${formatPaymentMethod(sale.paymentMethod)}',
+                    style: AppTypography.caption,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-              // New bill button
-              OutlinedButton.icon(
-                onPressed: widget.onNewBill,
-                icon: const Icon(Icons.add_shopping_cart_rounded),
-                label: const Text('Go Back / New Bill'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppSpacing.smMd,
+/// Paper size plus the print action.
+class _PrintPanel extends StatelessWidget {
+  const _PrintPanel({
+    required this.paperType,
+    required this.printing,
+    required this.onPaperTypeChanged,
+    required this.onPrint,
+  });
+
+  final TaxInvoicePaperType paperType;
+  final bool printing;
+  final ValueChanged<TaxInvoicePaperType> onPaperTypeChanged;
+  final VoidCallback onPrint;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionPanel(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySoft,
+                    borderRadius: AppBorderRadius.radiusMD,
+                  ),
+                  child: const Icon(
+                    Icons.print_rounded,
+                    size: 18,
+                    color: AppColors.primaryDeep,
                   ),
                 ),
+                const SizedBox(width: AppSpacing.smMd),
+                Text('Print receipt', style: AppTypography.subtitle),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AppDropdownField<TaxInvoicePaperType>(
+              label: 'Paper format',
+              value: paperType,
+              enabled: !printing,
+              items: [
+                for (final pt in TaxInvoicePaperType.values)
+                  DropdownMenuItem(value: pt, child: Text(pt.label)),
+              ],
+              onChanged: (pt) {
+                if (pt != null) onPaperTypeChanged(pt);
+              },
+            ),
+            const SizedBox(height: AppSpacing.md),
+            BrandActionButton(
+              label: 'Print Invoice',
+              icon: Icons.print_rounded,
+              loading: printing,
+              onPressed: onPrint,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NewBillButton extends StatelessWidget {
+  const _NewBillButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.card,
+      borderRadius: AppBorderRadius.radiusL,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        hoverColor: AppColors.primarySoft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.smMd),
+          decoration: BoxDecoration(
+            borderRadius: AppBorderRadius.radiusL,
+            border: Border.all(color: AppColors.borderStrong),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.add_shopping_cart_rounded,
+                size: 18,
+                color: AppColors.textPrimary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Start a new bill',
+                style: AppTypography.label.copyWith(fontSize: 15),
               ),
             ],
           ),
@@ -219,10 +413,6 @@ class _PosPrintStepState extends ConsumerState<PosPrintStep> {
     );
   }
 }
-
-// -----------------------------------------------------------------------------
-// Local helper widgets (mirrors sale_detail_screen.dart helpers)
-// -----------------------------------------------------------------------------
 
 class _ItemRow extends StatelessWidget {
   const _ItemRow({required this.item});
@@ -231,63 +421,57 @@ class _ItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final qty = item.quantity % 1 == 0
+        ? item.quantity.toInt().toString()
+        : item.quantity.toStringAsFixed(2);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.primarySoft,
+            borderRadius: AppBorderRadius.radiusSM,
+          ),
+          child: Text(
+            'x$qty',
+            style: AppTypography.priceSmall.copyWith(
+              fontSize: 12,
+              color: AppColors.primaryDeep,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.smMd),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 item.productName ?? 'Product #${item.productId}',
-                style: AppTypography.body,
+                style: AppTypography.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
               Text(
-                '${formatMoneyAmount(item.quantity)}'
-                '${item.unitSymbol != null ? ' ${item.unitSymbol}' : ''}'
-                ' x ${formatMoneyAmount(item.rate)}',
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.textMuted,
-                ),
+                '${formatMoneyAmount(item.rate)}'
+                '${item.unitSymbol != null ? ' per ${item.unitSymbol}' : ' each'}',
+                style: AppTypography.caption,
               ),
             ],
           ),
         ),
-        Text(formatMoneyAmount(item.lineTotal), style: AppTypography.body),
+        const SizedBox(width: AppSpacing.sm),
+        Text(
+          formatMoneyAmount(item.lineTotal),
+          style: AppTypography.priceSmall,
+        ),
       ],
-    );
-  }
-}
-
-class _TotalRow extends StatelessWidget {
-  const _TotalRow({
-    required this.label,
-    required this.value,
-    this.emphasize = false,
-  });
-
-  final String label;
-  final double value;
-  final bool emphasize;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = emphasize ? AppTypography.title : AppTypography.bodySmall;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: emphasize
-                  ? style
-                  : style.copyWith(color: AppColors.textMuted),
-            ),
-          ),
-          Text(formatMoneyAmount(value), style: style),
-        ],
-      ),
     );
   }
 }

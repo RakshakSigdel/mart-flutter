@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/core.dart';
+import '../../../shared/widgets/section_ui.dart';
 
-/// Prev/next controls plus a "Page X of Y · N products" summary.
+/// Paging footer for the products panel.
 class InventoryProductsPaginationBar extends StatelessWidget {
   const InventoryProductsPaginationBar({
     super.key,
@@ -25,30 +25,15 @@ class InventoryProductsPaginationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // pageNumber is already 1-indexed, matching the backend's own paging.
-    final pageLabel = totalPages == 0
-        ? 'No results'
-        : 'Page $pageNumber of $totalPages · $totalElements product${totalElements == 1 ? '' : 's'}';
-
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            pageLabel,
-            style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
-          ),
-        ),
-        IconButton(
-          onPressed: hasPrevious ? onPrevious : null,
-          icon: const Icon(Icons.chevron_left_rounded),
-          tooltip: 'Previous page',
-        ),
-        IconButton(
-          onPressed: hasNext ? onNext : null,
-          icon: const Icon(Icons.chevron_right_rounded),
-          tooltip: 'Next page',
-        ),
-      ],
+    return SectionPaginationBar(
+      pageNumber: pageNumber,
+      totalPages: totalPages,
+      totalElements: totalElements,
+      itemNoun: 'product',
+      hasPrevious: hasPrevious,
+      hasNext: hasNext,
+      onPrevious: onPrevious,
+      onNext: onNext,
     );
   }
 }

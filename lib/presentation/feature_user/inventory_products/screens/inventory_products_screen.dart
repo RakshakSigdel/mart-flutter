@@ -7,6 +7,7 @@ import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
 import '../../../../data/models/models_user/inventory_units_model.dart'
     show formatUnitValue;
+import '../../../shared/widgets/section_ui.dart';
 import '../controllers/inventory_products_controller.dart';
 import '../widgets/inventory_products_confirm_dialog.dart';
 import '../widgets/barcode_scanner_screen.dart';
@@ -184,79 +185,128 @@ class _InventoryProductsScreenState
   static String _clearMessage(String backendMessage, String fallback) =>
       backendMessage.trim().isEmpty ? fallback : backendMessage;
 
+  /// What the panel header says it is showing, given the active filters.
+  String _subtitleFor(InventoryProductsState state) {
+    if (state.search.trim().isNotEmpty) {
+      return 'Matches for "${state.search.trim()}"';
+    }
+    final category = state.categoryOptions
+        .where((option) => option.id == state.categoryFilter)
+        .firstOrNull;
+    if (category != null) return 'In ${category.name}';
+    return switch (state.activeFilter) {
+      true => 'Active products only',
+      false => 'Inactive products only',
+      _ => 'Everything this mart sells',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inventoryProductsControllerProvider);
-    final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= AppBreakpoints.tablet;
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: AppBreakpoints.contentMaxWidth,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              InventoryProductsToolbar(
-                searchController: _searchController,
-                onSearchChanged: _onSearchChanged,
-                onSearchSubmitted: (value) {
-                  _searchDebouncer.cancel();
-                  _controller.setSearch(value);
-                  _controller.submitSearch();
-                },
-                categoryOptions: state.categoryOptions,
-                categoryFilter: state.categoryFilter,
-                onCategoryFilterChanged: _controller.setCategoryFilter,
-                activeFilter: state.activeFilter,
-                onActiveFilterChanged: _controller.setActiveFilter,
-                onBarcodeLookupPressed: _findBarcode,
-                onAddPressed: _addProduct,
-                onImportPressed: _importProducts,
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: AppGradients.background),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= AppBreakpoints.tablet;
+          final gutter = AppBreakpoints.isPhone(constraints.maxWidth)
+              ? AppSpacing.sm
+              : AppSpacing.md;
+
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppBreakpoints.contentMaxWidth,
               ),
-              const SizedBox(height: AppSpacing.md),
-              Expanded(child: _buildContent(state, isWide)),
-              const SizedBox(height: AppSpacing.smMd),
-              InventoryProductsPaginationBar(
-                pageNumber: state.pageNumber,
-                totalPages: state.totalPages,
-                totalElements: state.totalElements,
-                hasPrevious: state.hasPreviousPage,
-                hasNext: state.hasNextPage,
-                onPrevious: _controller.previousPage,
-                onNext: _controller.nextPage,
+              child: Padding(
+                padding: EdgeInsets.all(gutter),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    InventoryProductsToolbar(
+                      searchController: _searchController,
+                      onSearchChanged: _onSearchChanged,
+                      onSearchSubmitted: (value) {
+                        _searchDebouncer.cancel();
+                        _controller.setSearch(value);
+                        _controller.submitSearch();
+                      },
+                      categoryOptions: state.categoryOptions,
+                      categoryFilter: state.categoryFilter,
+                      onCategoryFilterChanged: _controller.setCategoryFilter,
+                      activeFilter: state.activeFilter,
+                      onActiveFilterChanged: _controller.setActiveFilter,
+                      onBarcodeLookupPressed: _findBarcode,
+                      onAddPressed: _addProduct,
+                      onImportPressed: _importProducts,
+                    ),
+                    SizedBox(height: gutter),
+                    Expanded(
+                      child: SectionPanel(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SectionPanelHeader(
+                              icon: Icons.inventory_2_rounded,
+                              eyebrow: 'PRODUCTS',
+                              subtitle: _subtitleFor(state),
+                              trailing: SectionBadge(
+                                label: '${state.totalElements}',
+                              ),
+                            ),
+                            Expanded(child: _buildContent(state, isWide)),
+                            InventoryProductsPaginationBar(
+                              pageNumber: state.pageNumber,
+                              totalPages: state.totalPages,
+                              totalElements: state.totalElements,
+                              hasPrevious: state.hasPreviousPage,
+                              hasNext: state.hasNextPage,
+                              onPrevious: _controller.previousPage,
+                              onNext: _controller.nextPage,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildContent(InventoryProductsState state, bool isWide) {
     if (state.isLoading) {
-      return AppListSkeleton(itemCount: isWide ? 6 : 4, hasThumbnail: false);
+      return Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: AppListSkeleton(itemCount: isWide ? 6 : 4, hasThumbnail: true),
+      );
     }
 
     if (state.error != null) {
-      return AppEmptyState.error(
-        message: state.error,
-        onAction: _controller.refresh,
+      return CenterOrScroll(
+        child: AppEmptyState.error(
+          message: state.error,
+          onAction: _controller.refresh,
+        ),
       );
     }
 
     if (state.isEmpty) {
-      return AppEmptyState(
-        icon: Icons.inventory_outlined,
-        title: state.search.isEmpty ? 'No products yet' : 'No results found',
-        message: state.search.isEmpty
-            ? 'Add your first product in a few simple steps.'
-            : 'Try a different search or clear your filters.',
-        actionLabel: state.search.isEmpty ? 'Quick add product' : null,
-        onAction: state.search.isEmpty ? _addProduct : null,
+      return CenterOrScroll(
+        child: AppEmptyState(
+          icon: Icons.inventory_outlined,
+          title: state.search.isEmpty ? 'No products yet' : 'No results found',
+          message: state.search.isEmpty
+              ? 'Add your first product in a few simple steps.'
+              : 'Try a different search or clear your filters.',
+          actionLabel: state.search.isEmpty ? 'Quick add product' : null,
+          onAction: state.search.isEmpty ? _addProduct : null,
+        ),
       );
     }
 
@@ -271,14 +321,18 @@ class _InventoryProductsScreenState
     }
 
     return ListView.separated(
+      padding: const EdgeInsets.all(AppSpacing.smMd),
       itemCount: state.products.length,
       separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.smMd),
       itemBuilder: (context, index) {
         final product = state.products[index];
-        return InventoryProductListCard(
-          product: product,
-          isBusy: state.busyIds.contains(product.id),
-          onAction: (action) => _handleRowAction(product, action),
+        return AppStaggered(
+          index: index,
+          child: InventoryProductListCard(
+            product: product,
+            isBusy: state.busyIds.contains(product.id),
+            onAction: (action) => _handleRowAction(product, action),
+          ),
         );
       },
     );
