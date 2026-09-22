@@ -294,6 +294,7 @@ class SectionPaginationBar extends StatelessWidget {
     required this.hasNext,
     required this.onPrevious,
     required this.onNext,
+    this.filled = true,
   });
 
   /// Already 1-indexed, matching the backend's own paging.
@@ -308,6 +309,10 @@ class SectionPaginationBar extends StatelessWidget {
   final VoidCallback onPrevious;
   final VoidCallback onNext;
 
+  /// Whether to draw the sunken band. Off when the bar sits directly on the
+  /// page rather than closing a panel.
+  final bool filled;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -315,10 +320,12 @@ class SectionPaginationBar extends StatelessWidget {
         horizontal: AppSpacing.md,
         vertical: AppSpacing.sm,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceSunken,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
+      decoration: filled
+          ? const BoxDecoration(
+              color: AppColors.surfaceSunken,
+              border: Border(top: BorderSide(color: AppColors.border)),
+            )
+          : null,
       child: Row(
         children: [
           Expanded(

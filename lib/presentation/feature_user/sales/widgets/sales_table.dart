@@ -51,6 +51,9 @@ class SalesTable extends StatelessWidget {
             minWidth: math.max(900, constraints.maxWidth),
           ),
           child: DataTable(
+            showCheckboxColumn: false,
+            dataRowMinHeight: 64,
+            dataRowMaxHeight: 64,
             headingRowColor: const WidgetStatePropertyAll(AppColors.surface),
             headingTextStyle: headerStyle,
             columnSpacing: AppSpacing.lg,
@@ -65,12 +68,13 @@ class SalesTable extends StatelessWidget {
             rows: [
               for (final sale in sales)
                 DataRow(
+                  onSelectChanged: (_) => onTap(sale),
                   cells: [
                     DataCell(
                       Text(sale.invoiceNumber, style: AppTypography.subtitle),
                       onTap: () => onTap(sale),
                     ),
-                    DataCell(Text(sale.customerName ?? '—')),
+                    DataCell(Text(sale.customerName ?? 'Walk-in customer')),
                     DataCell(Text(_formatDate(sale.soldAt))),
                     DataCell(PaymentStatusBadge(status: sale.paymentStatus)),
                     DataCell(Text(formatMoneyAmount(sale.netTotal))),

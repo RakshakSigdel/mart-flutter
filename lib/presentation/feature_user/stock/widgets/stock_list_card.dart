@@ -21,7 +21,7 @@ class StockListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      onTap: () => onAction(StockRowAction.viewDetails),
+      onTap: isBusy ? null : () => onAction(StockRowAction.viewDetails),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -62,7 +62,18 @@ class StockListCard extends StatelessWidget {
           ),
           _InfoRow(
             icon: Icons.tune_rounded,
-            label: 'Reorder level: ${formatStockQuantity(item.reorderLevel)}',
+            label:
+                'Reorder level: ${formatStockQuantity(item.reorderLevel)}${item.baseUnitSymbol != null ? ' ${item.baseUnitSymbol}' : ''}',
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: isBusy
+                  ? null
+                  : () => onAction(StockRowAction.setReorderLevel),
+              icon: const Icon(Icons.tune_rounded, size: 18),
+              label: const Text('Set reorder level'),
+            ),
           ),
         ],
       ),

@@ -36,17 +36,26 @@ class InventoryCategoriesTable extends StatelessWidget {
             minWidth: math.max(700, constraints.maxWidth),
           ),
           child: DataTable(
+            showCheckboxColumn: false,
+            dataRowMinHeight: 76,
+            dataRowMaxHeight: 76,
             headingRowColor: const WidgetStatePropertyAll(AppColors.surface),
             headingTextStyle: headerStyle,
             columnSpacing: AppSpacing.lg,
             columns: const [
               DataColumn(label: Text('CATEGORY')),
               DataColumn(label: Text('DESCRIPTION')),
-              DataColumn(label: Text('')),
+              DataColumn(label: Text('ACTIONS')),
             ],
             rows: [
               for (final category in categories)
                 DataRow(
+                  onSelectChanged: busyIds.contains(category.id)
+                      ? null
+                      : (_) => onAction(
+                          category,
+                          InventoryCategoryRowAction.viewDetails,
+                        ),
                   cells: [
                     DataCell(
                       Row(
@@ -74,7 +83,7 @@ class InventoryCategoriesTable extends StatelessWidget {
                         child: Text(
                           (category.description == null ||
                                   category.description!.isEmpty)
-                              ? '—'
+                              ? 'No description added'
                               : category.description!,
                           style: AppTypography.bodySmall,
                           overflow: TextOverflow.ellipsis,

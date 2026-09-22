@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/core.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/inventory_categories_model.dart';
+import '../../../shared/widgets/section_ui.dart';
 import '../controllers/inventory_categories_controller.dart';
 import '../widgets/inventory_categories_confirm_dialog.dart';
 import '../widgets/inventory_categories_list_card.dart';
@@ -28,7 +29,8 @@ class InventoryCategoriesScreen extends ConsumerStatefulWidget {
       _InventoryCategoriesScreenState();
 }
 
-class _InventoryCategoriesScreenState extends ConsumerState<InventoryCategoriesScreen> {
+class _InventoryCategoriesScreenState
+    extends ConsumerState<InventoryCategoriesScreen> {
   final _searchController = TextEditingController();
   final _searchDebouncer = Debouncer();
 
@@ -53,6 +55,13 @@ class _InventoryCategoriesScreenState extends ConsumerState<InventoryCategoriesS
 
   InventoryCategoriesController get _controller =>
       ref.read(inventoryCategoriesControllerProvider.notifier);
+
+  void _clearSearch() {
+    _searchDebouncer.cancel();
+    _searchController.clear();
+    _controller.setSearch('');
+    _controller.submitSearch();
+  }
 
   Future<void> _addCategory() async {
     final result = await context.push<bool>(Routes.inventoryCategoryNew);
@@ -112,43 +121,90 @@ class _InventoryCategoriesScreenState extends ConsumerState<InventoryCategoriesS
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inventoryCategoriesControllerProvider);
-    final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= AppBreakpoints.tablet;
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: AppBreakpoints.contentMaxWidth),
-        child: Padding(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 800;
+        return Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              InventoryCategoriesToolbar(
-                searchController: _searchController,
-                onSearchChanged: _onSearchChanged,
-                onSearchSubmitted: (value) {
-                  _searchDebouncer.cancel();
-                  _controller.setSearch(value);
-                  _controller.submitSearch();
-                },
-                onAddPressed: _addCategory,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Expanded(child: _buildContent(state, isWide)),
-              const SizedBox(height: AppSpacing.smMd),
-              InventoryCategoriesPaginationBar(
-                pageNumber: state.pageNumber,
-                totalPages: state.totalPages,
-                totalElements: state.totalElements,
-                hasPrevious: state.hasPreviousPage,
-                hasNext: state.hasNextPage,
-                onPrevious: _controller.previousPage,
-                onNext: _controller.nextPage,
+          child: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: SectionPanel(
+                    child: Column(
+                      children: [
+                        SectionPanelHeader(
+                          icon: Icons.category_outlined,
+                          eyebrow: 'PRODUCT CATEGORIES',
+                          subtitle:
+                              'Organize products and manage their allowed units',
+                          trailing: IconButton(
+                            tooltip: 'Refresh categories',
+                            onPressed: state.isLoading
+                                ? null
+                                : _controller.refresh,
+                            icon: const Icon(Icons.refresh_rounded),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: InventoryCategoriesToolbar(
+                            searchController: _searchController,
+                            onSearchChanged: _onSearchChanged,
+                            onSearchSubmitted: (value) {
+                              _searchDebouncer.cancel();
+                              _controller.setSearch(value);
+                              _controller.submitSearch();
+                            },
+                            onAddPressed: _addCategory,
+                            onClearSearch: _clearSearch,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ],
+            body: SectionPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SectionPanelHeader(
+                    icon: Icons.format_list_bulleted_rounded,
+                    eyebrow: state.search.isEmpty
+                        ? 'ALL CATEGORIES'
+                        : 'SEARCH RESULTS',
+                    subtitle: 'Select a category to view its details and units',
+                    trailing: SectionBadge(
+                      label: state.isLoading
+                          ? 'Loading…'
+                          : '${state.totalElements} categories',
+                    ),
+                  ),
+                  Expanded(child: _buildContent(state, isWide)),
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                    ),
+                    child: InventoryCategoriesPaginationBar(
+                      pageNumber: state.pageNumber,
+                      totalPages: state.totalPages,
+                      totalElements: state.totalElements,
+                      hasPrevious: !state.isLoading && state.hasPreviousPage,
+                      hasNext: !state.isLoading && state.hasNextPage,
+                      onPrevious: _controller.previousPage,
+                      onNext: _controller.nextPage,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -158,7 +214,10 @@ class _InventoryCategoriesScreenState extends ConsumerState<InventoryCategoriesS
     }
 
     if (state.error != null) {
-      return AppEmptyState.error(message: state.error, onAction: _controller.refresh);
+      return AppEmptyState.error(
+        message: state.error,
+        onAction: _controller.refresh,
+      );
     }
 
     if (state.isEmpty) {
@@ -168,8 +227,8 @@ class _InventoryCategoriesScreenState extends ConsumerState<InventoryCategoriesS
         message: state.search.isEmpty
             ? 'Add your first category to get started.'
             : 'Try a different search.',
-        actionLabel: state.search.isEmpty ? 'Add category' : null,
-        onAction: state.search.isEmpty ? _addCategory : null,
+        actionLabel: state.search.isEmpty ? 'Add category' : 'Clear search',
+        onAction: state.search.isEmpty ? _addCategory : _clearSearch,
       );
     }
 
@@ -184,6 +243,7 @@ class _InventoryCategoriesScreenState extends ConsumerState<InventoryCategoriesS
     }
 
     return ListView.separated(
+      padding: const EdgeInsets.all(AppSpacing.smMd),
       itemCount: state.categories.length,
       separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.smMd),
       itemBuilder: (context, index) {

@@ -33,6 +33,9 @@ class StockTable extends StatelessWidget {
             minWidth: math.max(800, constraints.maxWidth),
           ),
           child: DataTable(
+            showCheckboxColumn: false,
+            dataRowMinHeight: 76,
+            dataRowMaxHeight: 76,
             headingRowColor: const WidgetStatePropertyAll(AppColors.surface),
             headingTextStyle: headerStyle,
             columnSpacing: AppSpacing.lg,
@@ -42,11 +45,14 @@ class StockTable extends StatelessWidget {
               DataColumn(label: Text('QUANTITY')),
               DataColumn(label: Text('REORDER LEVEL')),
               DataColumn(label: Text('STATUS')),
-              DataColumn(label: Text('')),
+              DataColumn(label: Text('ACTIONS')),
             ],
             rows: [
               for (final item in items)
                 DataRow(
+                  onSelectChanged: busyIds.contains(item.productId)
+                      ? null
+                      : (_) => onAction(item, StockRowAction.viewDetails),
                   cells: [
                     DataCell(
                       ConstrainedBox(
@@ -68,7 +74,6 @@ class StockTable extends StatelessWidget {
                           ],
                         ),
                       ),
-                      onTap: () => onAction(item, StockRowAction.viewDetails),
                     ),
                     DataCell(Text(item.categoryName ?? '—')),
                     DataCell(
@@ -77,7 +82,11 @@ class StockTable extends StatelessWidget {
                         '${item.baseUnitSymbol != null ? ' ${item.baseUnitSymbol}' : ''}',
                       ),
                     ),
-                    DataCell(Text(formatStockQuantity(item.reorderLevel))),
+                    DataCell(
+                      Text(
+                        '${formatStockQuantity(item.reorderLevel)}${item.baseUnitSymbol != null ? ' ${item.baseUnitSymbol}' : ''}',
+                      ),
+                    ),
                     DataCell(StockStatusBadge(status: item.status)),
                     DataCell(
                       StockRowActionsMenu(

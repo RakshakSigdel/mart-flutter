@@ -151,6 +151,14 @@ class StockController extends Notifier<StockState> {
 
   Future<void> refresh() => _load(page: 1);
 
+  Future<void> refreshOverviewAndStock() =>
+      Future.wait([refresh(), _loadOverview()]);
+
+  Future<void> clearFilters() {
+    state = state.copyWith(search: '', categoryFilter: null, lowOnly: false);
+    return _load(page: 1);
+  }
+
   Future<void> nextPage() {
     if (!state.hasNextPage) return Future.value();
     return _load(page: state.pageNumber + 1);

@@ -156,6 +156,16 @@ class SalesController extends Notifier<SalesState> {
 
   void setSearch(String value) => state = state.copyWith(search: value);
 
+  Future<void> clearFilters() {
+    state = state.copyWith(
+      search: '',
+      statusFilter: null,
+      fromFilter: null,
+      toFilter: null,
+    );
+    return refresh();
+  }
+
   Future<void> submitSearch() => _load(page: 1);
 
   Future<void> setStatusFilter(PaymentStatus? status) {

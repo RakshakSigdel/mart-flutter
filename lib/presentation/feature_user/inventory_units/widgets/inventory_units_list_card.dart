@@ -21,6 +21,9 @@ class InventoryUnitListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
+      onTap: unit.isEditable && !isBusy
+          ? () => onAction(InventoryUnitRowAction.edit)
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -52,6 +55,11 @@ class InventoryUnitListCard extends StatelessWidget {
               if (unit.systemDefined) const SystemUnitBadge(),
               if (unit.referenceUnit) const ReferenceUnitBadge(),
             ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            unit.isEditable ? 'Select to edit unit' : 'System unit · Read only',
+            style: AppTypography.caption.copyWith(color: AppColors.textMuted),
           ),
         ],
       ),

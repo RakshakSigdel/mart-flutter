@@ -20,6 +20,7 @@ class StockToolbar extends StatelessWidget {
     required this.onCategoryFilterChanged,
     required this.lowOnly,
     required this.onLowOnlyChanged,
+    required this.onClearFilters,
   });
 
   final TextEditingController searchController;
@@ -30,104 +31,102 @@ class StockToolbar extends StatelessWidget {
   final ValueChanged<int?> onCategoryFilterChanged;
   final bool lowOnly;
   final ValueChanged<bool> onLowOnlyChanged;
+  final VoidCallback onClearFilters;
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= AppBreakpoints.tablet;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 640;
 
-    final search = AppTextField(
-      controller: searchController,
-      hint: 'Search by product name or code',
-      prefixIcon: Icons.search,
-      textInputAction: TextInputAction.search,
-      onChanged: onSearchChanged,
-      onSubmitted: onSearchSubmitted,
-    );
+        final search = AppTextField(
+          controller: searchController,
+          hint: 'Search by product name or code',
+          prefixIcon: Icons.search,
+          textInputAction: TextInputAction.search,
+          onChanged: onSearchChanged,
+          onSubmitted: onSearchSubmitted,
+        );
 
-    final categoryItems = <DropdownMenuItem<int?>>[
-      const DropdownMenuItem(value: null, child: Text('All categories')),
-      for (final category in categoryOptions)
-        DropdownMenuItem(
-          value: category.id,
-          child: Text(category.name, overflow: TextOverflow.ellipsis),
-        ),
-    ];
+        final categoryItems = <DropdownMenuItem<int?>>[
+          const DropdownMenuItem(value: null, child: Text('All categories')),
+          for (final category in categoryOptions)
+            DropdownMenuItem(
+              value: category.id,
+              child: Text(category.name, overflow: TextOverflow.ellipsis),
+            ),
+        ];
 
-    final categoryFilterField = SizedBox(
-      width: isWide ? 200 : double.infinity,
-      child: AppDropdownField<int?>(
-        value: categoryOptions.any((c) => c.id == categoryFilter)
-            ? categoryFilter
-            : null,
-        items: categoryItems,
-        onChanged: onCategoryFilterChanged,
-        hint: 'All categories',
-      ),
-    );
-
-    final lowOnlyToggle = _LowOnlyToggle(
-      value: lowOnly,
-      onChanged: onLowOnlyChanged,
-    );
-
-    if (isWide) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(child: search),
-          const SizedBox(width: AppSpacing.smMd),
-          categoryFilterField,
-          const SizedBox(width: AppSpacing.smMd),
-          lowOnlyToggle,
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        search,
-        const SizedBox(height: AppSpacing.smMd),
-        categoryFilterField,
-        const SizedBox(height: AppSpacing.smMd),
-        lowOnlyToggle,
-      ],
-    );
-  }
-}
-
-class _LowOnlyToggle extends StatelessWidget {
-  const _LowOnlyToggle({required this.value, required this.onChanged});
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.card,
-      borderRadius: AppBorderRadius.radiusL,
-      child: InkWell(
-        onTap: () => onChanged(!value),
-        borderRadius: AppBorderRadius.radiusL,
-        child: Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.smMd),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: AppBorderRadius.radiusL,
+        final categoryFilterField = SizedBox(
+          width: isWide ? 200 : double.infinity,
+          child: AppDropdownField<int?>(
+            value: categoryOptions.any((c) => c.id == categoryFilter)
+                ? categoryFilter
+                : null,
+            items: categoryItems,
+            onChanged: onCategoryFilterChanged,
+            hint: 'All categories',
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+        );
+
+        final lowOnlyToggle = Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            ChoiceChip(
+              label: const Text('All stock'),
+              selected: !lowOnly,
+              selectedColor: AppColors.primarySoft,
+              onSelected: (_) => onLowOnlyChanged(false),
+            ),
+            ChoiceChip(
+              label: const Text('Needs ordering'),
+              avatar: const Icon(Icons.warning_amber_rounded, size: 18),
+              selected: lowOnly,
+              selectedColor: AppColors.primarySoft,
+              onSelected: (_) => onLowOnlyChanged(true),
+            ),
+            if (searchController.text.isNotEmpty ||
+                categoryFilter != null ||
+                lowOnly)
+              TextButton.icon(
+                onPressed: onClearFilters,
+                icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                label: const Text('Clear filters'),
+              ),
+          ],
+        );
+
+        if (isWide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Switch(value: value, onChanged: onChanged),
-              const SizedBox(width: AppSpacing.xs),
-              Text('Needs ordering', style: AppTypography.label),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(child: search),
+                  const SizedBox(width: AppSpacing.smMd),
+                  categoryFilterField,
+                ],
+              ),
+              const SizedBox(height: AppSpacing.smMd),
+              lowOnlyToggle,
             ],
-          ),
-        ),
-      ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            search,
+            const SizedBox(height: AppSpacing.smMd),
+            categoryFilterField,
+            const SizedBox(height: AppSpacing.smMd),
+            lowOnlyToggle,
+          ],
+        );
+      },
     );
   }
 }

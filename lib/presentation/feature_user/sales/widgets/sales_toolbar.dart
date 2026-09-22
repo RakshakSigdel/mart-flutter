@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/core.dart';
 import '../../../../data/models/models_user/sale_model.dart';
+import '../../../shared/widgets/section_ui.dart';
 
 /// Search box, payment-status filter, date-range filter, and the "New
 /// sale" action.
@@ -26,6 +27,7 @@ class SalesToolbar extends StatelessWidget {
     required this.toFilter,
     required this.onDateRangeChanged,
     required this.onAddPressed,
+    required this.onClearFilters,
   });
 
   final TextEditingController searchController;
@@ -37,6 +39,7 @@ class SalesToolbar extends StatelessWidget {
   final DateTime? toFilter;
   final void Function(DateTime? from, DateTime? to) onDateRangeChanged;
   final VoidCallback onAddPressed;
+  final VoidCallback onClearFilters;
 
   static const _statusItems = <DropdownMenuItem<PaymentStatus?>>[
     DropdownMenuItem(value: null, child: Text('All statuses')),
@@ -47,96 +50,122 @@ class SalesToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= AppBreakpoints.tablet;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 680;
 
-    final search = AppTextField(
-      controller: searchController,
-      hint: 'Search bill no. or customer',
-      prefixIcon: Icons.search,
-      textInputAction: TextInputAction.search,
-      onChanged: onSearchChanged,
-      onSubmitted: onSearchSubmitted,
-    );
+        final search = AppTextField(
+          controller: searchController,
+          hint: 'Search bill no. or customer',
+          prefixIcon: Icons.search,
+          textInputAction: TextInputAction.search,
+          onChanged: onSearchChanged,
+          onSubmitted: onSearchSubmitted,
+        );
 
-    final statusField = AppDropdownField<PaymentStatus?>(
-      value: statusFilter,
-      items: _statusItems,
-      onChanged: onStatusFilterChanged,
-      hint: 'All statuses',
-    );
-
-    final fromField = AppDateField(
-      hint: 'From date',
-      value: fromFilter,
-      onChanged: (date) => date == null
-          ? onDateRangeChanged(null, toFilter)
-          : onDateRangeChanged(
-              DateTime(date.year, date.month, date.day),
-              toFilter,
-            ),
-    );
-
-    final toField = AppDateField(
-      hint: 'To date',
-      value: toFilter,
-      onChanged: (date) => date == null
-          ? onDateRangeChanged(fromFilter, null)
-          : onDateRangeChanged(
-              fromFilter,
-              DateTime(date.year, date.month, date.day, 23, 59, 59),
-            ),
-    );
-
-    final addButton = AppButton(
-      label: 'Make bill',
-      leading: const Icon(Icons.add),
-      onPressed: onAddPressed,
-    );
-
-    if (isWide) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: search),
-              const SizedBox(width: AppSpacing.smMd),
-              SizedBox(width: 180, child: statusField),
-              const SizedBox(width: AppSpacing.smMd),
-              addButton,
-            ],
-          ),
-          const SizedBox(height: AppSpacing.smMd),
-          Row(
-            children: [
-              SizedBox(width: 200, child: fromField),
-              const SizedBox(width: AppSpacing.smMd),
-              SizedBox(width: 200, child: toField),
-            ],
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        search,
-        const SizedBox(height: AppSpacing.smMd),
-        statusField,
-        const SizedBox(height: AppSpacing.smMd),
-        Row(
+        final statusField = Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            Expanded(child: fromField),
-            const SizedBox(width: AppSpacing.smMd),
-            Expanded(child: toField),
+            for (final item in _statusItems)
+              ChoiceChip(
+                label: item.child,
+                selected: statusFilter == item.value,
+                selectedColor: AppColors.primarySoft,
+                onSelected: (_) => onStatusFilterChanged(item.value),
+              ),
           ],
-        ),
-        const SizedBox(height: AppSpacing.smMd),
-        addButton,
-      ],
+        );
+
+        final fromField = AppDateField(
+          hint: 'From date',
+          value: fromFilter,
+          onChanged: (date) => date == null
+              ? onDateRangeChanged(null, toFilter)
+              : onDateRangeChanged(
+                  DateTime(date.year, date.month, date.day),
+                  toFilter,
+                ),
+        );
+
+        final toField = AppDateField(
+          hint: 'To date',
+          value: toFilter,
+          onChanged: (date) => date == null
+              ? onDateRangeChanged(fromFilter, null)
+              : onDateRangeChanged(
+                  fromFilter,
+                  DateTime(date.year, date.month, date.day, 23, 59, 59),
+                ),
+        );
+
+        final addButton = SizedBox(
+          width: 150,
+          child: BrandActionButton(
+            label: 'Make bill',
+            icon: Icons.add_rounded,
+            onPressed: onAddPressed,
+          ),
+        );
+
+        final dates = Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            SizedBox(
+              width: isWide ? 190 : (constraints.maxWidth - 12) / 2,
+              child: fromField,
+            ),
+            SizedBox(
+              width: isWide ? 190 : (constraints.maxWidth - 12) / 2,
+              child: toField,
+            ),
+            if (searchController.text.isNotEmpty ||
+                statusFilter != null ||
+                fromFilter != null ||
+                toFilter != null)
+              TextButton.icon(
+                onPressed: onClearFilters,
+                icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                label: const Text('Clear filters'),
+              ),
+          ],
+        );
+
+        if (isWide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: search),
+                  const SizedBox(width: AppSpacing.smMd),
+                  addButton,
+                ],
+              ),
+              const SizedBox(height: AppSpacing.smMd),
+              statusField,
+              const SizedBox(height: AppSpacing.smMd),
+              dates,
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            search,
+            const SizedBox(height: AppSpacing.smMd),
+            statusField,
+            const SizedBox(height: AppSpacing.smMd),
+            dates,
+            const SizedBox(height: AppSpacing.smMd),
+            addButton,
+          ],
+        );
+      },
     );
   }
 }

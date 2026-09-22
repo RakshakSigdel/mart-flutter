@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/core.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/inventory_units_model.dart';
+import '../../../shared/widgets/section_ui.dart';
 import '../controllers/inventory_units_controller.dart';
 import '../widgets/inventory_units_confirm_dialog.dart';
 import '../widgets/inventory_units_list_card.dart';
@@ -23,7 +24,8 @@ class InventoryUnitsScreen extends ConsumerStatefulWidget {
   const InventoryUnitsScreen({super.key});
 
   @override
-  ConsumerState<InventoryUnitsScreen> createState() => _InventoryUnitsScreenState();
+  ConsumerState<InventoryUnitsScreen> createState() =>
+      _InventoryUnitsScreenState();
 }
 
 class _InventoryUnitsScreenState extends ConsumerState<InventoryUnitsScreen> {
@@ -51,6 +53,13 @@ class _InventoryUnitsScreenState extends ConsumerState<InventoryUnitsScreen> {
 
   InventoryUnitsController get _controller =>
       ref.read(inventoryUnitsControllerProvider.notifier);
+
+  void _clearFilters() {
+    _searchDebouncer.cancel();
+    _searchController.clear();
+    _controller.setSearch('');
+    _controller.setMeasurementTypeFilter(null);
+  }
 
   Future<void> _addUnit() async {
     final result = await context.push<bool>(Routes.inventoryUnitNew);
@@ -107,45 +116,94 @@ class _InventoryUnitsScreenState extends ConsumerState<InventoryUnitsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inventoryUnitsControllerProvider);
-    final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= AppBreakpoints.tablet;
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: AppBreakpoints.contentMaxWidth),
-        child: Padding(
+    final hasFilters =
+        state.search.isNotEmpty || state.measurementTypeFilter != null;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 900;
+        return Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              InventoryUnitsToolbar(
-                searchController: _searchController,
-                onSearchChanged: _onSearchChanged,
-                onSearchSubmitted: (value) {
-                  _searchDebouncer.cancel();
-                  _controller.setSearch(value);
-                  _controller.submitSearch();
-                },
-                measurementTypeFilter: state.measurementTypeFilter,
-                onMeasurementTypeFilterChanged: _controller.setMeasurementTypeFilter,
-                onAddPressed: _addUnit,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Expanded(child: _buildContent(state, isWide)),
-              const SizedBox(height: AppSpacing.smMd),
-              InventoryUnitsPaginationBar(
-                pageNumber: state.pageNumber,
-                totalPages: state.totalPages,
-                totalElements: state.totalElements,
-                hasPrevious: state.hasPreviousPage,
-                hasNext: state.hasNextPage,
-                onPrevious: _controller.previousPage,
-                onNext: _controller.nextPage,
+          child: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: SectionPanel(
+                    child: Column(
+                      children: [
+                        SectionPanelHeader(
+                          icon: Icons.straighten_outlined,
+                          eyebrow: 'UNITS OF MEASURE',
+                          subtitle:
+                              'Manage how your products are measured and sold',
+                          trailing: IconButton(
+                            tooltip: 'Refresh units',
+                            onPressed: state.isLoading
+                                ? null
+                                : _controller.refresh,
+                            icon: const Icon(Icons.refresh_rounded),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: InventoryUnitsToolbar(
+                            searchController: _searchController,
+                            onSearchChanged: _onSearchChanged,
+                            onSearchSubmitted: (value) {
+                              _searchDebouncer.cancel();
+                              _controller.setSearch(value);
+                              _controller.submitSearch();
+                            },
+                            measurementTypeFilter: state.measurementTypeFilter,
+                            onMeasurementTypeFilterChanged:
+                                _controller.setMeasurementTypeFilter,
+                            onAddPressed: _addUnit,
+                            onClearFilters: _clearFilters,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ],
+            body: SectionPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SectionPanelHeader(
+                    icon: Icons.format_list_bulleted_rounded,
+                    eyebrow: hasFilters ? 'FILTERED UNITS' : 'ALL UNITS',
+                    subtitle:
+                        'Select a custom unit to edit. System units are read only.',
+                    trailing: SectionBadge(
+                      label: state.isLoading
+                          ? 'Loading…'
+                          : '${state.totalElements} units',
+                    ),
+                  ),
+                  Expanded(child: _buildContent(state, isWide)),
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                    ),
+                    child: InventoryUnitsPaginationBar(
+                      pageNumber: state.pageNumber,
+                      totalPages: state.totalPages,
+                      totalElements: state.totalElements,
+                      hasPrevious: !state.isLoading && state.hasPreviousPage,
+                      hasNext: !state.isLoading && state.hasNextPage,
+                      onPrevious: _controller.previousPage,
+                      onNext: _controller.nextPage,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -155,18 +213,23 @@ class _InventoryUnitsScreenState extends ConsumerState<InventoryUnitsScreen> {
     }
 
     if (state.error != null) {
-      return AppEmptyState.error(message: state.error, onAction: _controller.refresh);
+      return AppEmptyState.error(
+        message: state.error,
+        onAction: _controller.refresh,
+      );
     }
 
     if (state.isEmpty) {
+      final hasFilters =
+          state.search.isNotEmpty || state.measurementTypeFilter != null;
       return AppEmptyState(
         icon: Icons.straighten_outlined,
-        title: state.search.isEmpty ? 'No units yet' : 'No results found',
-        message: state.search.isEmpty
+        title: hasFilters ? 'No matching units' : 'No units yet',
+        message: !hasFilters
             ? 'Add your first unit to get started.'
             : 'Try a different search or clear your filters.',
-        actionLabel: state.search.isEmpty ? 'Add unit' : null,
-        onAction: state.search.isEmpty ? _addUnit : null,
+        actionLabel: hasFilters ? 'Clear filters' : 'Add unit',
+        onAction: hasFilters ? _clearFilters : _addUnit,
       );
     }
 
@@ -181,6 +244,7 @@ class _InventoryUnitsScreenState extends ConsumerState<InventoryUnitsScreen> {
     }
 
     return ListView.separated(
+      padding: const EdgeInsets.all(AppSpacing.smMd),
       itemCount: state.units.length,
       separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.smMd),
       itemBuilder: (context, index) {

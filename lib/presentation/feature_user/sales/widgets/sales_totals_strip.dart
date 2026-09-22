@@ -19,31 +19,56 @@ class SalesTotalsStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totals = this.totals;
-    if (totals == null) return const SizedBox.shrink();
+    if (totals == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.smMd),
+        child: isLoading
+            ? const LinearProgressIndicator()
+            : Text('Sales overview unavailable', style: AppTypography.caption),
+      );
+    }
 
-    return Row(
-      children: [
-        Expanded(
-          child: _StatCard(label: 'Bills', value: '${totals.billCount}'),
-        ),
-        const SizedBox(width: AppSpacing.smMd),
-        Expanded(
-          child: _StatCard(
-            label: 'Net sales',
-            value: formatMoneyAmount(totals.netSales),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.smMd),
-        Expanded(
-          child: _StatCard(
-            label: 'Outstanding',
-            value: formatMoneyAmount(totals.outstanding),
-            tone: totals.outstanding > 0
-                ? AppBadgeTone.warning
-                : AppBadgeTone.success,
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth < 480
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 24) / 3;
+        return Column(
+          children: [
+            if (isLoading) const LinearProgressIndicator(minHeight: 2),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  width: cardWidth,
+                  child: _StatCard(
+                    label: 'Bills',
+                    value: '${totals.billCount}',
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _StatCard(
+                    label: 'Net sales',
+                    value: formatMoneyAmount(totals.netSales),
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _StatCard(
+                    label: 'Outstanding',
+                    value: formatMoneyAmount(totals.outstanding),
+                    tone: totals.outstanding > 0
+                        ? AppBadgeTone.warning
+                        : AppBadgeTone.success,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -79,7 +104,14 @@ class _StatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          Text(value, style: AppTypography.title.copyWith(color: _foreground)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: AppTypography.title.copyWith(color: _foreground),
+            ),
+          ),
         ],
       ),
     );

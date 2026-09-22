@@ -1,280 +1,311 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/core.dart';
-import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_shared/commerce_model.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
-import '../../../../providers/providers_user/inventory_products_provider.dart';
-import '../../inventory_products/widgets/barcode_scanner_screen.dart';
 
-/// A snapshot of one line item row's editable state — what
-/// `PurchaseLineItemRow` reports up to the form on every change, so the
-/// form can compute a running total and, on submit, build the request
-/// without reaching back into any row's own widget state.
+/// One received line: a product, the pack it arrived in, how many, and what
+/// each cost.
+///
+/// The form owns these — a line only exists once a product has been picked,
+/// so there is never a half-empty row waiting to be filled in.
 class PurchaseLineItemData {
   const PurchaseLineItemData({
-    this.productId,
-    this.productName,
-    this.purchaseUnitId,
-    this.purchaseUnitLabel,
-    required this.quantity,
-    required this.rate,
+    required this.product,
+    required this.unitOptions,
+    this.unit,
+    this.quantity = 1,
+    this.rate = 0,
   });
 
-  final int? productId;
-  final String? productName;
-  final int? purchaseUnitId;
-  final String? purchaseUnitLabel;
+  final ProductModel product;
+  final List<ProductPurchaseUnitModel> unitOptions;
+  final ProductPurchaseUnitModel? unit;
   final double quantity;
   final double rate;
 
   double get lineTotal => quantity * rate;
 
   bool get isComplete =>
-      productId != null && purchaseUnitId != null && quantity > 0;
+      unit != null &&
+      quantity.isFinite &&
+      quantity > 0 &&
+      rate.isFinite &&
+      rate >= 0;
+
+  PurchaseLineItemData copyWith({
+    ProductPurchaseUnitModel? unit,
+    double? quantity,
+    double? rate,
+  }) => PurchaseLineItemData(
+    product: product,
+    unitOptions: unitOptions,
+    unit: unit ?? this.unit,
+    quantity: quantity ?? this.quantity,
+    rate: rate ?? this.rate,
+  );
 }
 
-/// One product/purchase-unit/quantity/rate row in the purchase form's item
-/// list — fully self-contained: it fetches the selected product's own
-/// purchase units itself (rather than the form preloading every product's
-/// units up front) and only ever reports a plain [PurchaseLineItemData]
-/// snapshot upward via [onChanged].
-class PurchaseLineItemRow extends ConsumerStatefulWidget {
+/// A received item with unit selection before quantity and cost, followed
+/// by an explicit calculation so the user can check the entry.
+class PurchaseLineItemRow extends StatefulWidget {
   const PurchaseLineItemRow({
     super.key,
+    required this.line,
+    required this.enabled,
     required this.onChanged,
     required this.onRemove,
   });
 
+  final PurchaseLineItemData line;
+  final bool enabled;
   final ValueChanged<PurchaseLineItemData> onChanged;
   final VoidCallback onRemove;
 
   @override
-  ConsumerState<PurchaseLineItemRow> createState() =>
-      _PurchaseLineItemRowState();
+  State<PurchaseLineItemRow> createState() => _PurchaseLineItemRowState();
 }
 
-class _PurchaseLineItemRowState extends ConsumerState<PurchaseLineItemRow> {
-  final _quantityController = TextEditingController();
-  final _rateController = TextEditingController();
-  final _barcodeController = TextEditingController();
+class _PurchaseLineItemRowState extends State<PurchaseLineItemRow> {
+  late final _quantity = TextEditingController(
+    text: _trim(widget.line.quantity),
+  );
+  late final _rate = TextEditingController(
+    text: formatMoneyAmount(widget.line.rate),
+  );
 
-  ProductModel? _product;
-  ProductPurchaseUnitModel? _unit;
-  List<ProductPurchaseUnitModel> _unitOptions = [];
-  bool _loadingUnits = false;
+  static String _trim(double value) =>
+      value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(2);
+
+  @override
+  void didUpdateWidget(PurchaseLineItemRow old) {
+    super.didUpdateWidget(old);
+    // The rate follows the pack when a different one is picked.
+    if (old.line.rate != widget.line.rate &&
+        double.tryParse(_rate.text.trim()) != widget.line.rate) {
+      _rate.text = formatMoneyAmount(widget.line.rate);
+    }
+  }
 
   @override
   void dispose() {
-    _quantityController.dispose();
-    _rateController.dispose();
-    _barcodeController.dispose();
+    _quantity.dispose();
+    _rate.dispose();
     super.dispose();
   }
 
-  Future<List<ProductModel>> _searchProducts(String query) async {
-    try {
-      final result = await ref
-          .read(inventoryProductsRemoteDataSourceProvider)
-          .list(
-            search: query.trim().isEmpty ? null : query.trim(),
-            active: true,
-            size: 20,
-          );
-      return result.content;
-    } on ApiException {
-      return const [];
+  void _push({ProductPurchaseUnitModel? unit}) {
+    if (unit != null) {
+      _rate.text = formatMoneyAmount(unit.purchasePrice);
     }
-  }
-
-  Future<void> _findProductByBarcode(String barcode) async {
-    final value = barcode.trim();
-    if (value.isEmpty) return;
-
-    final products = await _searchProducts(value);
-    if (!mounted) return;
-    if (products.isEmpty) {
-      AppSnackBar.error(context, 'No product found for this barcode.');
-      return;
-    }
-    await _onProductSelected(products.first);
-  }
-
-  Future<void> _scanBarcode() async {
-    final barcode = await showBarcodeScannerSheet(context);
-    if (barcode == null || !mounted) return;
-    _barcodeController.text = barcode;
-    await _findProductByBarcode(barcode);
-  }
-
-  Future<void> _onProductSelected(ProductModel? product) async {
-    setState(() {
-      _product = product;
-      _unit = null;
-      _unitOptions = [];
-      _loadingUnits = product != null;
-    });
-    _notify();
-    if (product == null) return;
-
-    try {
-      final units = await ref
-          .read(inventoryProductsRemoteDataSourceProvider)
-          .purchaseUnits(product.id);
-      if (!mounted) return;
-      ProductPurchaseUnitModel? defaultUnit;
-      for (final unit in units) {
-        if (unit.isDefault) {
-          defaultUnit = unit;
-          break;
-        }
-      }
-      final selected = defaultUnit ?? (units.isEmpty ? null : units.first);
-      setState(() {
-        _unitOptions = units;
-        _loadingUnits = false;
-        _unit = selected;
-      });
-      if (_quantityController.text.trim().isEmpty) {
-        _quantityController.text = '1';
-      }
-      if (selected != null) {
-        _rateController.text = formatMoneyAmount(selected.purchasePrice);
-      }
-      _notify();
-    } on ApiException {
-      if (!mounted) return;
-      setState(() => _loadingUnits = false);
-    }
-  }
-
-  void _onUnitSelected(ProductPurchaseUnitModel? unit) {
-    setState(() => _unit = unit);
-    if (unit != null && _rateController.text.trim().isEmpty) {
-      _rateController.text = formatMoneyAmount(unit.purchasePrice);
-    }
-    _notify();
-  }
-
-  void _notify() {
-    final quantity = double.tryParse(_quantityController.text.trim()) ?? 0;
-    final rate = double.tryParse(_rateController.text.trim()) ?? 0;
     widget.onChanged(
-      PurchaseLineItemData(
-        productId: _product?.id,
-        productName: _product?.name,
-        purchaseUnitId: _unit?.id,
-        purchaseUnitLabel: _unit == null
-            ? null
-            : '${_unit!.unit.name} (${_unit!.unit.symbol})',
-        quantity: quantity,
-        rate: rate,
+      widget.line.copyWith(
+        unit: unit,
+        quantity: double.tryParse(_quantity.text.trim()) ?? 0,
+        rate: double.tryParse(_rate.text.trim()) ?? 0,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
+    final line = widget.line;
+    final needsUnit = line.unit == null;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.smMd),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: AppBorderRadius.radiusL,
+        border: Border.all(
+          color: needsUnit ? AppColors.warning : AppColors.border,
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          AppTextField(
-            controller: _barcodeController,
-            label: 'Barcode',
-            hint: 'Enter barcode manually',
-            textInputAction: TextInputAction.search,
-            suffixIcon: Icons.qr_code_scanner_outlined,
-            onSuffixTap: _scanBarcode,
-            onSubmitted: _findProductByBarcode,
-          ),
-          const SizedBox(height: AppSpacing.smMd),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: AppSearchableDropdownField<ProductModel>(
-                  label: 'Product or barcode',
-                  selectedItem: _product,
-                  asyncItems: _searchProducts,
-                  itemLabel: (p) => p.productCode == null
-                      ? p.name
-                      : '${p.name} (${p.productCode})',
-                  hint: 'Search by name or code',
-                  onChanged: _onProductSelected,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      line.product.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    if (line.product.productCode?.isNotEmpty == true)
+                      Text(
+                        line.product.productCode!,
+                        style: AppTypography.caption,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Rs. ${formatMoneyAmount(line.lineTotal)}',
+                style: AppTypography.priceSmall.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded),
-                tooltip: 'Remove item',
-                onPressed: widget.onRemove,
+                icon: const Icon(Icons.close_rounded, size: 16),
+                color: AppColors.textMuted,
+                tooltip: 'Remove ${line.product.name}',
+                onPressed: widget.enabled ? widget.onRemove : null,
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints.tightFor(
+                  width: 30,
+                  height: 30,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.smMd),
-          if (_loadingUnits)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-              child: SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            )
-          else if (_product != null) ...[
-            AppDropdownField<ProductPurchaseUnitModel?>(
-              label: 'Purchase unit',
-              value: _unit,
-              hint: _unitOptions.isEmpty
-                  ? 'No purchase units set up'
-                  : 'Select a unit',
-              items: [
-                for (final unit in _unitOptions)
-                  DropdownMenuItem(
-                    value: unit,
-                    child: Text('${unit.unit.name} (${unit.unit.symbol})'),
-                  ),
-              ],
-              onChanged: _onUnitSelected,
+          const SizedBox(height: AppSpacing.sm),
+          _UnitField(
+            line: line,
+            enabled: widget.enabled,
+            onChanged: (unit) => _push(unit: unit),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Choose the unit shown on the supplier bill before entering quantity and cost.',
+              style: AppTypography.caption,
             ),
-            const SizedBox(height: AppSpacing.smMd),
-          ],
-          Row(
-            children: [
-              Expanded(
-                child: AppTextField(
-                  controller: _quantityController,
-                  label: 'Quantity',
-                  hint: 'e.g. 10',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                  ],
-                  onChanged: (_) => _notify(),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.smMd),
-              Expanded(
-                child: AppTextField(
-                  controller: _rateController,
-                  label: 'Purchase price',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                  ],
-                  onChanged: (_) => _notify(),
-                ),
-              ),
-            ],
           ),
+          const SizedBox(height: AppSpacing.md),
+          _NumberField(
+            controller: _quantity,
+            label:
+                'Quantity received${line.unit == null ? '' : ' (${line.unit!.unit.symbol})'}',
+            enabled: widget.enabled,
+            onChanged: (_) => _push(),
+            validator: (value) {
+              final quantity = double.tryParse(value?.trim() ?? '');
+              return quantity == null || !quantity.isFinite || quantity <= 0
+                  ? 'Enter a quantity greater than zero'
+                  : null;
+            },
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _NumberField(
+            controller: _rate,
+            label: 'Cost per ${line.unit?.unit.name ?? 'purchase unit'} (Rs.)',
+            enabled: widget.enabled,
+            onChanged: (_) => _push(),
+            validator: (value) {
+              final rate = double.tryParse(value?.trim() ?? '');
+              return rate == null || !rate.isFinite || rate < 0
+                  ? 'Enter a valid cost (zero or more)'
+                  : null;
+            },
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${_trim(line.quantity)} ${line.unit?.unit.symbol ?? 'units'} × Rs. ${formatMoneyAmount(line.rate)} = Rs. ${formatMoneyAmount(line.lineTotal)}',
+              style: AppTypography.subtitle,
+            ),
+          ),
+          if (needsUnit) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                const Icon(
+                  Icons.info_outline_rounded,
+                  size: 15,
+                  color: AppColors.warning,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    line.unitOptions.isEmpty
+                        ? 'This product has no purchase units set up yet.'
+                        : 'Choose the pack this arrived in.',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.warning,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _NumberField extends StatelessWidget {
+  const _NumberField({
+    required this.controller,
+    required this.label,
+    required this.enabled,
+    required this.onChanged,
+    required this.validator,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final bool enabled;
+  final ValueChanged<String> onChanged;
+  final FormFieldValidator<String> validator;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppTextField(
+      controller: controller,
+      label: label,
+      enabled: enabled,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+      ],
+      onChanged: onChanged,
+      validator: validator,
+      textInputAction: TextInputAction.next,
+    );
+  }
+}
+
+class _UnitField extends StatelessWidget {
+  const _UnitField({
+    required this.line,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final PurchaseLineItemData line;
+  final bool enabled;
+  final ValueChanged<ProductPurchaseUnitModel?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppDropdownField<ProductPurchaseUnitModel>(
+      label: 'Purchase unit / pack',
+      value: line.unit,
+      enabled: enabled && line.unitOptions.isNotEmpty,
+      hint: line.unitOptions.isEmpty ? 'None set up' : 'Choose a pack',
+      items: [
+        for (final unit in line.unitOptions)
+          DropdownMenuItem(
+            value: unit,
+            child: Text('${unit.unit.name} (${unit.unit.symbol})'),
+          ),
+      ],
+      onChanged: onChanged,
     );
   }
 }

@@ -33,18 +33,24 @@ class InventoryUnitsTable extends StatelessWidget {
             minWidth: math.max(800, constraints.maxWidth),
           ),
           child: DataTable(
+            showCheckboxColumn: false,
+            dataRowMinHeight: 76,
+            dataRowMaxHeight: 76,
             headingRowColor: const WidgetStatePropertyAll(AppColors.surface),
             headingTextStyle: headerStyle,
             columnSpacing: AppSpacing.lg,
             columns: const [
               DataColumn(label: Text('NAME')),
               DataColumn(label: Text('TYPE')),
-              DataColumn(label: Text('')),
-              DataColumn(label: Text('')),
+              DataColumn(label: Text('ATTRIBUTES')),
+              DataColumn(label: Text('ACTIONS')),
             ],
             rows: [
               for (final unit in units)
                 DataRow(
+                  onSelectChanged: unit.isEditable && !busyIds.contains(unit.id)
+                      ? (_) => onAction(unit, InventoryUnitRowAction.edit)
+                      : null,
                   cells: [
                     DataCell(
                       ConstrainedBox(

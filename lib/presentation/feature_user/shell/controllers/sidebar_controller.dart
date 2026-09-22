@@ -12,6 +12,7 @@ class SidebarState {
     required this.sections,
     required this.isLoading,
     required this.error,
+    required this.isCollapsed,
   });
 
   /// Starts pre-filled with [fallbackSidebarSections], already resolved —
@@ -21,10 +22,12 @@ class SidebarState {
     sections: resolveSidebarSections(fallbackSidebarSections),
     isLoading: true,
     error: null,
+    isCollapsed: false,
   );
 
   final List<ResolvedSidebarSection> sections;
   final bool isLoading;
+  final bool isCollapsed;
 
   /// Set when the most recent fetch failed. [sections] still holds
   /// whatever it last resolved successfully (or the fallback, if this is
@@ -35,11 +38,13 @@ class SidebarState {
   SidebarState copyWith({
     List<ResolvedSidebarSection>? sections,
     bool? isLoading,
+    bool? isCollapsed,
     Object? error = _unset,
   }) {
     return SidebarState(
       sections: sections ?? this.sections,
       isLoading: isLoading ?? this.isLoading,
+      isCollapsed: isCollapsed ?? this.isCollapsed,
       error: identical(error, _unset) ? this.error : error as String?,
     );
   }
@@ -72,6 +77,11 @@ class SidebarController extends Notifier<SidebarState> {
       await _handleUnauthorized(e);
       state = state.copyWith(isLoading: false, error: e.message);
     }
+  }
+
+  /// Keeps the rail width stable while switching between shell branches.
+  void setCollapsed(bool isCollapsed) {
+    state = state.copyWith(isCollapsed: isCollapsed);
   }
 
   /// A 401 means the session is dead — sign out everywhere rather than

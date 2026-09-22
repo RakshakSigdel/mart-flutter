@@ -18,21 +18,22 @@ class StockOverviewStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final overview = this.overview;
-    if (overview == null) return const SizedBox.shrink();
+    if (overview == null) {
+      return isLoading
+          ? const LinearProgressIndicator()
+          : Text('Stock overview unavailable', style: AppTypography.caption);
+    }
 
-    return Row(
-      children: [
-        Expanded(
-          child: _StatCard(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cards = <Widget>[
+          _StatCard(
             icon: Icons.inventory_2_outlined,
             label: 'Tracked products',
             value: overview.trackedProducts,
             tone: AppBadgeTone.neutral,
           ),
-        ),
-        const SizedBox(width: AppSpacing.smMd),
-        Expanded(
-          child: _StatCard(
+          _StatCard(
             icon: Icons.warning_amber_rounded,
             label: 'Needing attention',
             value: overview.needingAttention,
@@ -40,8 +41,26 @@ class StockOverviewStrip extends StatelessWidget {
                 ? AppBadgeTone.warning
                 : AppBadgeTone.success,
           ),
-        ),
-      ],
+        ];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (isLoading) const LinearProgressIndicator(minHeight: 2),
+            if (constraints.maxWidth < 520) ...[
+              cards[0],
+              const SizedBox(height: AppSpacing.smMd),
+              cards[1],
+            ] else
+              Row(
+                children: [
+                  Expanded(child: cards[0]),
+                  const SizedBox(width: AppSpacing.smMd),
+                  Expanded(child: cards[1]),
+                ],
+              ),
+          ],
+        );
+      },
     );
   }
 }

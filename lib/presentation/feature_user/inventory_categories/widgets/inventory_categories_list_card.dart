@@ -21,7 +21,9 @@ class InventoryCategoryListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      onTap: () => onAction(InventoryCategoryRowAction.viewDetails),
+      onTap: isBusy
+          ? null
+          : () => onAction(InventoryCategoryRowAction.viewDetails),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -32,15 +34,25 @@ class InventoryCategoryListCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(category.name, style: AppTypography.subtitle),
-                if (category.description != null && category.description!.isNotEmpty) ...[
+                if (category.description != null &&
+                    category.description!.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     category.description!,
-                    style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textMuted,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'View details & units',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.primaryDeep,
+                  ),
+                ),
               ],
             ),
           ),

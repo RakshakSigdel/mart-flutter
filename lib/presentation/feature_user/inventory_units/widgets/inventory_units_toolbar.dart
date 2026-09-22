@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/core.dart';
 import '../../../../data/models/models_user/inventory_units_model.dart';
+import '../../../shared/widgets/section_ui.dart';
 
 /// Search box, measurement-type filter, and the "Add unit" action.
 ///
@@ -16,6 +17,7 @@ class InventoryUnitsToolbar extends StatelessWidget {
     required this.measurementTypeFilter,
     required this.onMeasurementTypeFilterChanged,
     required this.onAddPressed,
+    required this.onClearFilters,
   });
 
   final TextEditingController searchController;
@@ -24,6 +26,7 @@ class InventoryUnitsToolbar extends StatelessWidget {
   final UnitMeasurementType? measurementTypeFilter;
   final ValueChanged<UnitMeasurementType?> onMeasurementTypeFilterChanged;
   final VoidCallback onAddPressed;
+  final VoidCallback onClearFilters;
 
   static final _typeItems = <DropdownMenuItem<UnitMeasurementType?>>[
     const DropdownMenuItem(value: null, child: Text('All types')),
@@ -36,56 +39,79 @@ class InventoryUnitsToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= AppBreakpoints.tablet;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 600;
 
-    final search = AppTextField(
-      controller: searchController,
-      hint: 'Search by name or symbol',
-      prefixIcon: Icons.search,
-      textInputAction: TextInputAction.search,
-      onChanged: onSearchChanged,
-      onSubmitted: onSearchSubmitted,
-    );
+        final search = AppTextField(
+          controller: searchController,
+          hint: 'Search by name or symbol',
+          prefixIcon: Icons.search,
+          textInputAction: TextInputAction.search,
+          onChanged: onSearchChanged,
+          onSubmitted: onSearchSubmitted,
+        );
 
-    final typeFilterField = SizedBox(
-      width: isWide ? 200 : double.infinity,
-      child: AppDropdownField<UnitMeasurementType?>(
-        value: measurementTypeFilter,
-        items: _typeItems,
-        onChanged: onMeasurementTypeFilterChanged,
-        hint: 'All types',
-      ),
-    );
+        final typeFilterField = Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            for (final item in _typeItems)
+              ChoiceChip(
+                label: item.child,
+                selected: measurementTypeFilter == item.value,
+                selectedColor: AppColors.primarySoft,
+                onSelected: (_) => onMeasurementTypeFilterChanged(item.value),
+              ),
+            if (searchController.text.isNotEmpty ||
+                measurementTypeFilter != null)
+              TextButton.icon(
+                onPressed: onClearFilters,
+                icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                label: const Text('Clear filters'),
+              ),
+          ],
+        );
 
-    final addButton = AppButton(
-      label: 'Add unit',
-      leading: const Icon(Icons.add),
-      onPressed: onAddPressed,
-    );
+        final addButton = SizedBox(
+          width: 160,
+          child: BrandActionButton(
+            label: 'Add unit',
+            icon: Icons.add_rounded,
+            onPressed: onAddPressed,
+          ),
+        );
 
-    if (isWide) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: search),
-          const SizedBox(width: AppSpacing.smMd),
-          typeFilterField,
-          const SizedBox(width: AppSpacing.smMd),
-          addButton,
-        ],
-      );
-    }
+        if (isWide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: search),
+                  const SizedBox(width: AppSpacing.smMd),
+                  addButton,
+                ],
+              ),
+              const SizedBox(height: AppSpacing.smMd),
+              typeFilterField,
+            ],
+          );
+        }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        search,
-        const SizedBox(height: AppSpacing.smMd),
-        typeFilterField,
-        const SizedBox(height: AppSpacing.smMd),
-        addButton,
-      ],
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            search,
+            const SizedBox(height: AppSpacing.smMd),
+            typeFilterField,
+            const SizedBox(height: AppSpacing.smMd),
+            addButton,
+          ],
+        );
+      },
     );
   }
 }

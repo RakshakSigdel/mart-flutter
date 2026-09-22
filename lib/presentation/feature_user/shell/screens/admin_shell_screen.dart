@@ -64,41 +64,33 @@ class AdminShellScreen extends ConsumerStatefulWidget {
 
 class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _isCollapsed = false;
-
-  /// Whether the current collapse was triggered automatically by the POS
-  /// route (so we can restore the sidebar when the user leaves POS).
-  bool _autoCollapsed = false;
 
   @override
   void initState() {
     super.initState();
-    _syncCollapseForLocation(widget.location);
+    _scheduleCollapseForPos(widget.location);
   }
 
   @override
   void didUpdateWidget(AdminShellScreen old) {
     super.didUpdateWidget(old);
     if (old.location != widget.location) {
-      _syncCollapseForLocation(widget.location);
+      _scheduleCollapseForPos(widget.location);
     }
   }
 
-  /// Collapses the sidebar automatically when entering POS, and restores it
-  /// when leaving POS (only if *we* were the ones who collapsed it).
-  void _syncCollapseForLocation(String location) {
-    final isPosNow = location == Routes.pos;
-    if (isPosNow && !_isCollapsed) {
-      setState(() {
-        _isCollapsed = true;
-        _autoCollapsed = true;
-      });
-    } else if (!isPosNow && _autoCollapsed) {
-      setState(() {
-        _isCollapsed = false;
-        _autoCollapsed = false;
-      });
-    }
+  /// Collapses the sidebar automatically when entering POS. The collapsed
+  /// state stays in effect across navigation until the user expands it.
+  void _scheduleCollapseForPos(String location) {
+    if (location != Routes.pos) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.location != Routes.pos) return;
+      final sidebar = ref.read(sidebarControllerProvider);
+      if (!sidebar.isCollapsed) {
+        ref.read(sidebarControllerProvider.notifier).setCollapsed(true);
+      }
+    });
   }
 
   Future<void> _logout() async {
@@ -107,6 +99,9 @@ class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
   }
 
   void _onNavigate(String path, {required bool isWide}) {
+    if (path == Routes.pos) {
+      ref.read(sidebarControllerProvider.notifier).setCollapsed(true);
+    }
     // Branch tabs replace the current location (tab-like); anything else
     // (e.g. the profile page) is a full page outside the shell, so it gets
     // pushed on top instead — see `isSidebarShellBranch`'s doc comment for
@@ -177,13 +172,11 @@ class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
       onNavigate: (path) => _onNavigate(path, isWide: isWide),
       companyName: companyName,
       onLogout: _logout,
-      isCollapsed: isWide && _isCollapsed,
+      isCollapsed: isWide && sidebarState.isCollapsed,
       onToggleCollapse: isWide
-          ? () => setState(() {
-                _isCollapsed = !_isCollapsed;
-                // If user manually expands/collapses, clear the auto-flag
-                _autoCollapsed = false;
-              })
+          ? () => ref
+                .read(sidebarControllerProvider.notifier)
+                .setCollapsed(!sidebarState.isCollapsed)
           : null,
       isRefreshing: sidebarState.isLoading,
       refreshFailed: sidebarState.error != null,
