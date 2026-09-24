@@ -18,21 +18,13 @@ class ApiConfig {
   /// Toggle this when building against the deployed retail API. Keeping the
   /// switch here makes every datasource use the same environment.
   static const bool isProduction = true;
+  static const String _productionBaseUrl = 'https://sitoulatechsolution.com.np/retail-api/';
 
-  static const String _port = '1200';
-  static const String _path = '/api';
-  static const String _productionBaseUrl = 'http://103.198.9.209/retail-api/';
-
-  static String get baseUrl {
-    if (isProduction) return _productionBaseUrl;
-    if (!kIsWeb && Platform.isAndroid) {
-      //adb reverse tcp:1200 tcp:1200
-      // return 'http://localhost:$_port$_path';
-      return 'http://103.198.9.209/retail-api/';
-    }
-    // return 'http://localhost:$_port$_path';
-    return 'http://103.198.9.209/retail-api/';
-  }
+  static final String baseUrl = () {
+    if (kIsWeb) return 'https://sitoulatechsolution.com.np/retail-api/';
+    if (Platform.isAndroid) return 'https://sitoulatechsolution.com.np/retail-api/';
+    return 'https://sitoulatechsolution.com.np/retail-api/';
+  }();
 }
 
 /// Builds the app's single configured [Dio] instance.
