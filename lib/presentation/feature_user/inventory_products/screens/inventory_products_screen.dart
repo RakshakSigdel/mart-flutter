@@ -68,39 +68,10 @@ class _InventoryProductsScreenState
   }
 
   Future<void> _findBarcode() async {
-    final barcodeController = TextEditingController();
     final barcode = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Find barcode'),
-        content: AppTextField(
-          controller: barcodeController,
-          label: 'Barcode',
-          hint: 'Enter barcode manually',
-          autofocus: true,
-          textInputAction: TextInputAction.search,
-          suffixIcon: Icons.qr_code_scanner_outlined,
-          onSuffixTap: () async {
-            final scanned = await showBarcodeScannerSheet(dialogContext);
-            if (scanned != null) barcodeController.text = scanned;
-          },
-          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
-        ),
-        actions: [
-          AppButton(
-            label: 'Cancel',
-            variant: AppButtonVariant.secondary,
-            onPressed: () => Navigator.of(dialogContext).pop(),
-          ),
-          AppButton(
-            label: 'Find',
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(barcodeController.text),
-          ),
-        ],
-      ),
+      builder: (_) => const _FindBarcodeDialog(),
     );
-    barcodeController.dispose();
     if (barcode == null || barcode.trim().isEmpty || !mounted) return;
     try {
       final unit = await _controller.findByBarcode(barcode);
@@ -337,4 +308,55 @@ class _InventoryProductsScreenState
       },
     );
   }
+}
+
+/// Keeps the input controller alive until the dialog itself leaves the tree.
+/// A dialog result can complete before its closing animation has removed the
+/// focused TextFormField, especially when Enter submits it.
+class _FindBarcodeDialog extends StatefulWidget {
+  const _FindBarcodeDialog();
+
+  @override
+  State<_FindBarcodeDialog> createState() => _FindBarcodeDialogState();
+}
+
+class _FindBarcodeDialogState extends State<_FindBarcodeDialog> {
+  final _barcode = TextEditingController();
+
+  @override
+  void dispose() {
+    _barcode.dispose();
+    super.dispose();
+  }
+
+  void _submit([String? value]) =>
+      Navigator.of(context).pop(value ?? _barcode.text);
+
+  Future<void> _scan() async {
+    final scanned = await showBarcodeScannerSheet(context);
+    if (scanned != null && mounted) _barcode.text = scanned;
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Find barcode'),
+    content: AppTextField(
+      controller: _barcode,
+      label: 'Barcode',
+      hint: 'Enter barcode manually',
+      autofocus: true,
+      textInputAction: TextInputAction.search,
+      suffixIcon: Icons.qr_code_scanner_outlined,
+      onSuffixTap: _scan,
+      onSubmitted: _submit,
+    ),
+    actions: [
+      AppButton(
+        label: 'Cancel',
+        variant: AppButtonVariant.secondary,
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      AppButton(label: 'Find', onPressed: _submit),
+    ],
+  );
 }

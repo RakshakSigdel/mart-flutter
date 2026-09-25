@@ -112,19 +112,30 @@ class PosScreenState extends ConsumerState<PosScreen> {
         _moveCartSelection(1);
         return true;
       }
-      if (logical == LogicalKeyboardKey.numpadAdd || event.character == '+') {
+      // A scanner may include + or - inside its barcode. Once a scan has
+      // started, keep those characters instead of treating them as cart
+      // quantity shortcuts.
+      if (_barcodeBuffer.isEmpty &&
+          (logical == LogicalKeyboardKey.numpadAdd || event.character == '+')) {
         _adjustSelectedCartQuantity(1);
         return true;
       }
-      if (logical == LogicalKeyboardKey.numpadSubtract ||
-          event.character == '-') {
+      if (_barcodeBuffer.isEmpty &&
+          (logical == LogicalKeyboardKey.numpadSubtract ||
+              event.character == '-')) {
         _adjustSelectedCartQuantity(-1);
         return true;
       }
     }
 
     // Accumulate printable characters
-    final char = event.character;
+    final char =
+        event.character ??
+        (logical == LogicalKeyboardKey.numpadSubtract
+            ? '-'
+            : logical == LogicalKeyboardKey.numpadAdd
+            ? '+'
+            : null);
     if (char != null && char.isNotEmpty) {
       _barcodeBuffer.write(char);
       // Reset the gap timer - if no more chars arrive in 80 ms, clear buffer

@@ -9,6 +9,7 @@ import '../../../../data/models/models_user/inventory_categories_model.dart';
 import '../../../../data/models/models_user/inventory_products_model.dart';
 import '../../../../providers/providers_user/inventory_categories_provider.dart';
 import '../../../../providers/providers_user/inventory_products_provider.dart';
+import '../../inventory_categories/widgets/inventory_category_thumbnail.dart';
 import '../models/pos_cart_item.dart';
 import '../../../shared/widgets/section_ui.dart';
 
@@ -16,7 +17,7 @@ import '../../../shared/widgets/section_ui.dart';
 ///
 /// Two panels, each a floating card on the page gradient:
 ///   Cart   – running sale, inline quantity steppers, dark totals footer
-///   Browse – search, category pills, product grid
+///   Browse – search, category grid, then products in the chosen category
 ///
 /// Wide viewports put them side by side; narrower ones stack browse on top
 /// of the cart so the totals and the pay button stay on screen.
@@ -57,21 +58,21 @@ class _PosProductSelectionState extends ConsumerState<PosProductSelection> {
   final _searchKey = GlobalKey();
   final _searchLayerLink = LayerLink();
 
-  // ── Category filter ───────────────────────────────────────────────────────
+  // ── Category browsing ─────────────────────────────────────────────────────
   List<InventoryCategoryModel> _categories = [];
   int? _selectedCategoryId;
   bool _categoriesLoading = true;
 
   // ── Product grid ──────────────────────────────────────────────────────────
   List<ProductModel> _gridProducts = [];
-  bool _gridLoading = true;
+  bool _gridLoading = false;
+  int _gridRequestId = 0;
 
   @override
   void initState() {
     super.initState();
     _searchFocus.addListener(_onSearchFocusChanged);
     _loadCategories();
-    _loadGridProducts();
   }
 
   @override
@@ -106,23 +107,36 @@ class _PosProductSelectionState extends ConsumerState<PosProductSelection> {
   // ── Product grid loading ──────────────────────────────────────────────────
 
   Future<void> _loadGridProducts({int? categoryId}) async {
+    final requestId = ++_gridRequestId;
     setState(() => _gridLoading = true);
     try {
       final page = await ref
           .read(inventoryProductsRemoteDataSourceProvider)
           .list(active: true, categoryId: categoryId, size: 50);
-      if (mounted) {
+      if (mounted && requestId == _gridRequestId) {
         setState(() {
           _gridProducts = page.content;
           _gridLoading = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _gridLoading = false);
+      if (mounted && requestId == _gridRequestId) {
+        setState(() => _gridLoading = false);
+      }
     }
   }
 
   void _onCategorySelected(int? categoryId) {
+    if (_selectedCategoryId == categoryId) return;
+    if (categoryId == null) {
+      ++_gridRequestId;
+      setState(() {
+        _selectedCategoryId = null;
+        _gridProducts = [];
+        _gridLoading = false;
+      });
+      return;
+    }
     setState(() => _selectedCategoryId = categoryId);
     _loadGridProducts(categoryId: categoryId);
   }
@@ -943,6 +957,55 @@ class _BrowsePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedCategory = categories
+        .where((category) => category.id == selectedCategoryId)
+        .firstOrNull;
+    final Widget content;
+    if (selectedCategoryId == null) {
+      if (categoriesLoading) {
+        content = const Center(child: CircularProgressIndicator());
+      } else if (categories.isEmpty) {
+        content = const CenterOrScroll(
+          child: AppEmptyState(
+            icon: Icons.category_outlined,
+            title: 'No categories yet',
+            message: 'Add a category to browse its products.',
+            compact: true,
+          ),
+        );
+      } else {
+        content = _CategoryGrid(
+          categories: categories,
+          compact: compact,
+          onSelected: (categoryId) => onCategorySelected(categoryId),
+        );
+      }
+    } else if (gridLoading) {
+      content = const Center(
+        child: SizedBox(
+          width: 26,
+          height: 26,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: AppColors.primary,
+          ),
+        ),
+      );
+    } else if (products.isEmpty) {
+      content = const CenterOrScroll(
+        child: AppEmptyState.noResults(
+          title: 'No products here',
+          message: 'Go back to categories or search by name.',
+          compact: true,
+        ),
+      );
+    } else {
+      content = _ProductGrid(
+        products: products,
+        compact: compact,
+        onTap: onProductTapped,
+      );
+    }
     return SectionPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -964,48 +1027,46 @@ class _BrowsePanel extends StatelessWidget {
               onCleared: onSearchCleared,
             ),
           ),
-          if (categoriesLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: LinearProgressIndicator(
-                minHeight: 2,
-                color: AppColors.primary,
-                backgroundColor: AppColors.surfaceSunken,
+          if (selectedCategoryId != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.sm,
+                0,
+                AppSpacing.md,
+                AppSpacing.sm,
+              ),
+              child: Row(
+                children: [
+                  TextButton.icon(
+                    onPressed: () => onCategorySelected(null),
+                    icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                    label: const Text('Categories'),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      selectedCategory?.name ?? 'Products',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: AppTypography.subtitle,
+                    ),
+                  ),
+                ],
               ),
             )
           else
-            _CategoryPills(
-              categories: categories,
-              selectedId: selectedCategoryId,
-              onSelected: onCategorySelected,
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                0,
+                AppSpacing.md,
+                AppSpacing.smMd,
+              ),
+              child: Text('Categories', style: AppTypography.subtitle),
             ),
           const Divider(height: 1, color: AppColors.border),
-          Expanded(
-            child: gridLoading
-                ? const Center(
-                    child: SizedBox(
-                      width: 26,
-                      height: 26,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  )
-                : products.isEmpty
-                ? const CenterOrScroll(
-                    child: AppEmptyState.noResults(
-                      title: 'No products here',
-                      message: 'Pick another category or search by name.',
-                      compact: true,
-                    ),
-                  )
-                : _ProductGrid(
-                    products: products,
-                    compact: compact,
-                    onTap: onProductTapped,
-                  ),
-          ),
+          Expanded(child: content),
         ],
       ),
     );
@@ -1214,46 +1275,96 @@ class _SearchResults extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Category pills
+// Category tiles
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _CategoryPills extends StatelessWidget {
-  const _CategoryPills({
+class _CategoryGrid extends StatelessWidget {
+  const _CategoryGrid({
     required this.categories,
-    required this.selectedId,
+    required this.compact,
     required this.onSelected,
   });
 
   final List<InventoryCategoryModel> categories;
-  final int? selectedId;
-  final void Function(int? categoryId) onSelected;
+  final bool compact;
+  final ValueChanged<int> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        AppSpacing.smMd,
+    return GridView.builder(
+      padding: const EdgeInsets.all(AppSpacing.smMd),
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: compact ? 124 : 152,
+        mainAxisSpacing: AppSpacing.smMd,
+        crossAxisSpacing: AppSpacing.smMd,
+        childAspectRatio: 0.75,
       ),
-      child: Wrap(
-        spacing: AppSpacing.sm,
-        runSpacing: AppSpacing.sm,
-        children: [
-          BrandPill(
-            label: 'All',
-            icon: Icons.grid_view_rounded,
-            selected: selectedId == null,
-            onTap: () => onSelected(null),
+      itemCount: categories.length,
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        return AppStaggered(
+          index: index,
+          child: _CategoryTile(
+            category: category,
+            compact: compact,
+            onTap: () => onSelected(category.id),
           ),
-          for (final cat in categories)
-            BrandPill(
-              label: cat.name,
-              selected: selectedId == cat.id,
-              onTap: () => onSelected(cat.id),
+        );
+      },
+    );
+  }
+}
+
+class _CategoryTile extends StatelessWidget {
+  const _CategoryTile({
+    required this.category,
+    required this.compact,
+    required this.onTap,
+  });
+
+  final InventoryCategoryModel category;
+  final bool compact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: category.name,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppBorderRadius.radiusL,
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: AppBorderRadius.radiusL,
+              border: Border.all(color: AppColors.border),
+              boxShadow: AppShadows.soft,
             ),
-        ],
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                InventoryCategoryThumbnail(
+                  imageUrl: category.image,
+                  size: compact ? 64 : 88,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  category.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -36,7 +36,7 @@ import '../../presentation/feature_user/sales/screens/sale_detail_screen.dart';
 import '../../presentation/feature_user/sales/screens/sales_screen.dart';
 import '../../presentation/feature_user/sales/screens/pos_screen.dart';
 import '../../presentation/feature_user/sales_reports/screens/sales_book_screen.dart';
-import '../../presentation/feature_user/settings/screens/mart_settings_screen.dart';
+import '../../presentation/feature_user/settings/screens/settings_coming_soon_screen.dart';
 import '../../presentation/feature_user/shell/screens/admin_shell_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_form_screen.dart';
 import '../../presentation/feature_user/staff_management/screens/staff_management_screen.dart';
@@ -355,7 +355,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: Routes.settings,
                 name: 'settings',
                 pageBuilder: (context, state) =>
-                    AppPageRoute.none(state, const MartSettingsScreen()),
+                    AppPageRoute.none(state, const SettingsComingSoonScreen()),
               ),
             ],
           ),

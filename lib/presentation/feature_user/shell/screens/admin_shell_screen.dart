@@ -27,7 +27,7 @@ const Map<String, String> _fallbackTitles = {
   Routes.sales: 'Sales',
   Routes.pos: 'Make bill / बिल बनाउनुहोस्',
   Routes.salesReports: 'Sales Reports',
-  Routes.settings: 'Mart Settings',
+  Routes.settings: 'Tax & mart settings',
 };
 
 /// Shared layout for every admin-area screen (dashboard, staff, …): a

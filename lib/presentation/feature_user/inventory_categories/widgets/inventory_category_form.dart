@@ -5,6 +5,7 @@ import '../../../../core/core.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_user/inventory_categories_model.dart';
 import '../controllers/inventory_categories_controller.dart';
+import 'category_image_search_dialog.dart';
 import 'inventory_category_thumbnail.dart';
 
 /// Add/edit form for one category. Calls [Navigator.pop] with `true` when
@@ -23,15 +24,18 @@ class InventoryCategoryForm extends ConsumerStatefulWidget {
   bool get isEditing => category != null;
 
   @override
-  ConsumerState<InventoryCategoryForm> createState() => _InventoryCategoryFormState();
+  ConsumerState<InventoryCategoryForm> createState() =>
+      _InventoryCategoryFormState();
 }
 
 class _InventoryCategoryFormState extends ConsumerState<InventoryCategoryForm> {
   final _formKey = GlobalKey<FormState>();
 
   late final _name = TextEditingController(text: widget.category?.name);
-  late final _description = TextEditingController(text: widget.category?.description);
-  late final _image = TextEditingController(text: widget.category?.image);
+  late final _description = TextEditingController(
+    text: widget.category?.description,
+  );
+  late String? _imageUrl = widget.category?.image;
 
   bool _submitting = false;
   String? _errorMessage;
@@ -40,8 +44,17 @@ class _InventoryCategoryFormState extends ConsumerState<InventoryCategoryForm> {
   void dispose() {
     _name.dispose();
     _description.dispose();
-    _image.dispose();
     super.dispose();
+  }
+
+  Future<void> _chooseImage() async {
+    final imageUrl = await showDialog<String>(
+      context: context,
+      builder: (context) =>
+          CategoryImageSearchDialog(initialQuery: _name.text.trim()),
+    );
+    if (!mounted || imageUrl == null) return;
+    setState(() => _imageUrl = imageUrl);
   }
 
   Future<void> _submit() async {
@@ -56,7 +69,7 @@ class _InventoryCategoryFormState extends ConsumerState<InventoryCategoryForm> {
     final request = UpsertInventoryCategoryRequest(
       name: _name.text.trim(),
       description: _emptyToNull(_description.text),
-      image: _emptyToNull(_image.text),
+      image: _imageUrl,
     );
     try {
       if (widget.isEditing) {
@@ -82,14 +95,6 @@ class _InventoryCategoryFormState extends ConsumerState<InventoryCategoryForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(
-            child: AnimatedBuilder(
-              animation: _image,
-              builder: (context, _) =>
-                  InventoryCategoryThumbnail(imageUrl: _image.text.trim(), size: 72),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
           if (!widget.isEditing) ...[
             const Text(
               'Only a category name is needed. You can skip the details below.',
@@ -112,12 +117,51 @@ class _InventoryCategoryFormState extends ConsumerState<InventoryCategoryForm> {
             enabled: !_submitting,
           ),
           const SizedBox(height: AppSpacing.smMd),
-          AppTextField(
-            controller: _image,
-            label: 'Image URL',
-            hint: 'https://…',
-            keyboardType: TextInputType.url,
-            enabled: !_submitting,
+          Text('Category image', style: AppTypography.fieldLabel),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              InventoryCategoryThumbnail(imageUrl: _imageUrl, size: 72),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _imageUrl == null
+                          ? 'No image selected'
+                          : 'Image selected',
+                      style: AppTypography.bodySmall,
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Search for a photo and use it for this category.',
+                      style: AppTypography.caption,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.smMd),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              AppButton(
+                label: _imageUrl == null ? 'Find an image' : 'Change image',
+                variant: AppButtonVariant.secondary,
+                leading: const Icon(Icons.image_search_outlined, size: 18),
+                onPressed: _submitting ? null : _chooseImage,
+              ),
+              if (_imageUrl != null)
+                TextButton(
+                  onPressed: _submitting
+                      ? null
+                      : () => setState(() => _imageUrl = null),
+                  child: const Text('Remove image'),
+                ),
+            ],
           ),
           AppFormError(message: _errorMessage),
           const SizedBox(height: AppSpacing.xl),

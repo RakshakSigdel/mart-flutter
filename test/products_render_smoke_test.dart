@@ -41,6 +41,20 @@ Dio _fakeDio() {
     InterceptorsWrapper(
       onRequest: (options, handler) {
         final path = options.path;
+        if (path.contains('/by-barcode/')) {
+          handler.reject(
+            DioException(
+              requestOptions: options,
+              response: Response(
+                requestOptions: options,
+                statusCode: 404,
+                data: {'message': 'Barcode not found.'},
+              ),
+              type: DioExceptionType.badResponse,
+            ),
+          );
+          return;
+        }
         // The /selection endpoints return a bare list; the list endpoints
         // return a page envelope.
         final Object data = path.contains('categories')
@@ -78,11 +92,7 @@ Dio _fakeDio() {
                     'sellingPrice': 25.0,
                     'sellingUnitSymbol': 'pc',
                   },
-                  {
-                    'id': 2,
-                    'name': 'Unpriced item',
-                    'active': false,
-                  },
+                  {'id': 2, 'name': 'Unpriced item', 'active': false},
                 ],
                 'pageNumber': 1,
                 'totalPages': 2,
@@ -132,6 +142,37 @@ Finder _fieldFor(String label) => find.descendant(
 );
 
 void main() {
+  testWidgets(
+    'Enter on an unknown barcode closes the dialog without disposing its focused field early',
+    (tester) async {
+      tester.view.physicalSize = const Size(820, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _harness(const Size(820, 900), const InventoryProductsScreen()),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Find barcode'));
+      await tester.pumpAndSettle();
+      await tester.enterText(_fieldFor('Barcode'), 'G80200900847');
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Find barcode'), findsOneWidget);
+      expect(find.text('Barcode not found.'), findsOneWidget);
+
+      await tester.tap(find.text('Find barcode'));
+      await tester.pumpAndSettle();
+      await tester.enterText(_fieldFor('Barcode'), 'G80200900847');
+      await tester.tap(find.text('Find'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Barcode not found.'), findsOneWidget);
+    },
+  );
+
   for (final entry in {
     'desktop': const Size(1440, 900),
     'tablet': const Size(820, 700),
@@ -165,10 +206,7 @@ void main() {
       expect(find.text('NEW PRODUCT'), findsOneWidget);
       expect(find.text('Save product'), findsOneWidget);
       // Nothing typed yet, so the margin strip prompts rather than computes.
-      expect(
-        find.textContaining('Enter both prices'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Enter both prices'), findsOneWidget);
     });
 
     testWidgets('product card renders at ${entry.key}', (tester) async {
@@ -200,7 +238,10 @@ void main() {
         const Size(1440, 900),
         SingleChildScrollView(
           child: InventoryProductsTable(
-            products: [_product(), _product(name: 'Unpriced', sellingPrice: null)],
+            products: [
+              _product(),
+              _product(name: 'Unpriced', sellingPrice: null),
+            ],
             busyIds: const {},
             onAction: (product, _) => opened = product,
           ),
