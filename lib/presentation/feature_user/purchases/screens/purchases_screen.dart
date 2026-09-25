@@ -99,6 +99,14 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
                       onDateRangeChanged: _controller.setDateRange,
                       onAddPressed: _addPurchase,
                     ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () => context.push(Routes.purchaseReturns),
+                        icon: const Icon(Icons.assignment_return_outlined),
+                        label: const Text('Debit notes'),
+                      ),
+                    ),
                     Expanded(child: _buildContent(state, isWide)),
                     PurchasesPaginationBar(
                       pageNumber: state.pageNumber,

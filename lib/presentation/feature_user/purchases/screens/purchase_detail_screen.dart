@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/core.dart';
 import '../../../../data/models/models_shared/commerce_model.dart';
 import '../../../../data/models/models_user/purchase_model.dart';
+import '../../../../data/models/models_user/return_note_model.dart';
+import '../../returns/widgets/returns_for_bill.dart';
 import '../controllers/purchase_detail_controller.dart';
 
 const _months = [
@@ -119,6 +121,21 @@ class PurchaseDetailScreen extends ConsumerWidget {
                       _InfoRow(label: 'Remark', value: purchase.remark!),
                   ],
                 ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              ReturnsForBill(
+                kind: ReturnKind.purchase,
+                billId: purchase.id,
+                lines: purchase.items
+                    .map(
+                      (item) => ReturnableLine(
+                        item.id,
+                        item.productName ?? 'Product #${item.productId}',
+                        item.quantity,
+                        item.purchaseUnitSymbol,
+                      ),
+                    )
+                    .toList(),
               ),
               const SizedBox(height: AppSpacing.md),
               AppCard(

@@ -139,6 +139,9 @@ class Routes {
   static String stockProductDetail(int id) => '$stock/products/$id';
 
   static const String purchases = '/purchases';
+  static const String purchaseReturns = '/purchase-returns';
+  static const String purchaseReturnDetailPath = '$purchaseReturns/:id';
+  static String purchaseReturnDetail(int id) => '$purchaseReturns/$id';
 
   /// The record-purchase form, as its own page — same reasoning as
   /// [staffNew]. No edit form — a recorded purchase is immutable.
@@ -152,6 +155,9 @@ class Routes {
   static String purchaseDetail(int id) => '$purchases/$id';
 
   static const String sales = '/sales';
+  static const String salesReturns = '/sales-returns';
+  static const String salesReturnDetailPath = '$salesReturns/:id';
+  static String salesReturnDetail(int id) => '$salesReturns/$id';
 
   static const String pos = '/pos';
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/core.dart';
 import '../../../../data/models/models_shared/commerce_model.dart';
 import '../../../../data/models/models_user/summary_report_model.dart';
@@ -20,6 +21,7 @@ class DashboardReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final returns = report.returns;
     final paymentTotal = report.paymentTypeTotals.fold<double>(
       0,
       (sum, item) => sum + item.netTotal.abs(),
@@ -38,10 +40,15 @@ class DashboardReportCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(period, style: AppTypography.bodySmall),
           const SizedBox(height: AppSpacing.lg),
-          Text('Net ${title.toLowerCase()}', style: AppTypography.bodySmall),
+          Text(
+            returns == null
+                ? 'Net ${title.toLowerCase()}'
+                : 'Net ${returns.subject.toLowerCase()} after returns',
+            style: AppTypography.bodySmall,
+          ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            formatMoneyAmount(report.netTotal),
+            formatMoneyAmount(returns?.netAfterReturns ?? report.netTotal),
             style: AppTypography.displaySmall,
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -51,17 +58,58 @@ class DashboardReportCard extends StatelessWidget {
             children: [
               _Metric(label: 'Transactions', value: '${report.count}'),
               _Metric(
-                label: 'VAT amount',
-                value: formatMoneyAmount(report.vatAmount),
+                label: returns == null ? 'VAT amount' : 'VAT after returns',
+                value: formatMoneyAmount(
+                  returns?.vatAmountAfterReturns ?? report.vatAmount,
+                ),
               ),
               _Metric(
-                label: 'Average transaction',
+                label: returns == null
+                    ? 'Average transaction'
+                    : 'Average before returns',
                 value: formatMoneyAmount(
                   report.count == 0 ? 0 : report.netTotal / report.count,
                 ),
               ),
             ],
           ),
+          if (returns != null) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: Divider(color: AppColors.border),
+            ),
+            Material(
+              color: Colors.transparent,
+              child: ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                title: Text(
+                  '${returns.subject} returns',
+                  style: AppTypography.subtitle,
+                ),
+                subtitle: Text(
+                  '${returns.count} notes · ${formatMoneyAmount(returns.amount)}',
+                  style: AppTypography.bodySmall,
+                ),
+                children: [
+                  Wrap(
+                    spacing: AppSpacing.xl,
+                    runSpacing: AppSpacing.md,
+                    children: [
+                      _Metric(
+                        label: '${returns.subject} before returns',
+                        value: formatMoneyAmount(report.netTotal),
+                      ),
+                      _Metric(
+                        label: 'Return VAT',
+                        value: formatMoneyAmount(returns.vatAmount),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
             child: Divider(color: AppColors.border),

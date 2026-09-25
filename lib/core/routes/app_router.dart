@@ -10,6 +10,7 @@ import '../../data/models/models_user/inventory_categories_model.dart';
 import '../../data/models/models_user/inventory_units_model.dart';
 import '../../data/models/models_user/staff_model.dart';
 import '../../data/models/models_user/vendor_model.dart';
+import '../../data/models/models_user/return_note_model.dart';
 import '../../presentation/feature_shared/auth/controller/auth_controller.dart';
 import '../../presentation/feature_shared/auth/screens/login_screen.dart';
 import '../../presentation/feature_shared/profile/screens/profile_screen.dart';
@@ -30,8 +31,8 @@ import '../../presentation/feature_user/inventory_units/screens/inventory_units_
 import '../../presentation/feature_user/purchases/screens/purchase_detail_screen.dart';
 import '../../presentation/feature_user/purchases/screens/purchase_form_screen.dart';
 import '../../presentation/feature_user/purchases/screens/purchases_screen.dart';
+import '../../presentation/feature_user/returns/screens/return_notes_screen.dart';
 import '../../presentation/feature_user/sales/screens/sale_detail_screen.dart';
-import '../../presentation/feature_user/sales/screens/sale_form_screen.dart';
 import '../../presentation/feature_user/sales/screens/sales_screen.dart';
 import '../../presentation/feature_user/sales/screens/pos_screen.dart';
 import '../../presentation/feature_user/sales_reports/screens/sales_book_screen.dart';
@@ -333,10 +334,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: Routes.pos,
                 name: 'pos',
-                pageBuilder: (context, state) => AppPageRoute.none(
-                  state,
-                  const PosScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    AppPageRoute.none(state, const PosScreen()),
               ),
             ],
           ),
@@ -589,6 +588,44 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ),
       ),
+      GoRoute(
+        path: Routes.salesReturns,
+        name: 'salesReturns',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          const ReturnNotesScreen(kind: ReturnKind.sale),
+        ),
+      ),
+      GoRoute(
+        path: Routes.salesReturnDetailPath,
+        name: 'salesReturnDetail',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          ReturnNoteDetailScreen(
+            kind: ReturnKind.sale,
+            id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          ),
+        ),
+      ),
+      GoRoute(
+        path: Routes.purchaseReturns,
+        name: 'purchaseReturns',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          const ReturnNotesScreen(kind: ReturnKind.purchase),
+        ),
+      ),
+      GoRoute(
+        path: Routes.purchaseReturnDetailPath,
+        name: 'purchaseReturnDetail',
+        pageBuilder: (context, state) => AppPageRoute.sharedAxisHorizontal(
+          state,
+          ReturnNoteDetailScreen(
+            kind: ReturnKind.purchase,
+            id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          ),
+        ),
+      ),
       //SuperAdmin Route
       GoRoute(
         path: Routes.adminManagement,
@@ -596,7 +633,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) =>
             AppPageRoute.fadeThrough(state, const AdminManagementScreen()),
       ),
-      // Create/edit mart — full pages for the same reason as the staff
+      // Create/edit mart full pages for the same reason as the staff
       // form routes above.
       GoRoute(
         path: Routes.adminNew,

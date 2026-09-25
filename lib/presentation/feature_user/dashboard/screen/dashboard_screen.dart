@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/core.dart';
 import '../../../../data/models/models_user/summary_report_model.dart';
 import '../../../feature_shared/auth/controller/auth_controller.dart';
@@ -174,7 +175,8 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                       ),
                     ];
-                    if (constraints.maxWidth < AppBreakpoints.tablet) {
+                    if (constraints.maxWidth <
+                        AppBreakpoints.reportCardsTwoColumn) {
                       return Column(
                         children: [
                           cards[0],
@@ -183,17 +185,13 @@ class DashboardScreen extends ConsumerWidget {
                         ],
                       );
                     }
-                    // Match the taller report's natural height without a
-                    // fixed height that could clip additional payment rows.
-                    return IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(child: cards[0]),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(child: cards[1]),
-                        ],
-                      ),
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: cards[0]),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(child: cards[1]),
+                      ],
                     );
                   },
                 ),

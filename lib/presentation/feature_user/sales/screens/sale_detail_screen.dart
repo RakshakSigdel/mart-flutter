@@ -9,6 +9,8 @@ import '../../../../core/core.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../data/models/models_shared/commerce_model.dart';
 import '../../../../data/models/models_user/sale_model.dart';
+import '../../../../data/models/models_user/return_note_model.dart';
+import '../../returns/widgets/returns_for_bill.dart';
 import '../controllers/sale_detail_controller.dart';
 import '../widgets/sale_badges.dart';
 import '../widgets/sale_take_payment_dialog.dart';
@@ -57,6 +59,18 @@ class SaleDetailScreen extends ConsumerStatefulWidget {
 class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
   bool _printingInvoice = false;
   TaxInvoicePaperType _paperType = TaxInvoicePaperType.mm80;
+  final _returnsKey = GlobalKey();
+
+  void _showReturns() {
+    final target = _returnsKey.currentContext;
+    if (target != null) {
+      Scrollable.ensureVisible(
+        target,
+        duration: AppAnimations.normal,
+        curve: AppAnimations.standard,
+      );
+    }
+  }
 
   Future<void> _takePayment(SaleDetailModel sale) async {
     final result = await showSaleTakePaymentDialog(
@@ -114,6 +128,11 @@ class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
         ),
         title: Text(sale?.invoiceNumber ?? 'Sale'),
         actions: [
+          TextButton.icon(
+            onPressed: sale == null ? null : _showReturns,
+            icon: const Icon(Icons.assignment_return_outlined),
+            label: const Text('Return'),
+          ),
           _printingInvoice
               ? const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12),
@@ -211,6 +230,22 @@ class _SaleDetailScreenState extends ConsumerState<SaleDetailScreen> {
                       _InfoRow(label: 'Remark', value: sale.remark!),
                   ],
                 ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              ReturnsForBill(
+                key: _returnsKey,
+                kind: ReturnKind.sale,
+                billId: sale.id,
+                lines: sale.items
+                    .map(
+                      (item) => ReturnableLine(
+                        item.id,
+                        item.productName ?? 'Product #${item.productId}',
+                        item.quantity,
+                        item.unitSymbol,
+                      ),
+                    )
+                    .toList(),
               ),
               const SizedBox(height: AppSpacing.md),
               AppCard(

@@ -91,6 +91,17 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                               icon: const Icon(Icons.refresh_rounded),
                             ),
                           ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () =>
+                                  context.push(Routes.salesReturns),
+                              icon: const Icon(
+                                Icons.assignment_return_outlined,
+                              ),
+                              label: const Text('Credit notes'),
+                            ),
+                          ),
                           Padding(
                             padding: const EdgeInsets.all(AppSpacing.md),
                             child: Column(

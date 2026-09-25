@@ -13,6 +13,9 @@ class AppBreakpoints {
   /// At or above this width: desktop layout.
   static const double desktop = 1000.0;
 
+  /// Minimum content width for two dashboard report cards with return metrics.
+  static const double reportCardsTwoColumn = 1100.0;
+
   /// Wide desktop / large monitor layout.
   static const double desktopLarge = 1400.0;
 
